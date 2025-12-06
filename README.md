@@ -57,6 +57,7 @@ The code in this repository is provided under a very permissive, “take it and 
 
 Author: Bill Sithiro
 Email: sithiro@gmail.com
+
 ```
 Permission is hereby granted to use, copy, modify, and distribute this software
 and its documentation for any purpose, free of charge, provided that this notice
