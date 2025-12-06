@@ -1,203 +1,214 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
+using System.IO;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace ExpertEase
 {
-	public static class Program
-	{
-		public static void Main()
+    public static class Program
+    {
+        public static void Main()
 		{
-			// 1. Attribute definitions
-			var attributes = new List<AttributeDef>
-			{
-				new AttributeDef("Weather", new[] { "raining", "sunny", "cloudy" }),
-				new AttributeDef("Family",  new[] { "yes", "no"       			 }),
-				new AttributeDef("Car",     new[] { "yes", "no"       			 })
-			};
+			// 1. Load the attributes and examples
+			var (attributes, examples) = LoadExpertFromFile("sunday.expert.json");
 
-			// 2. Training examples (with "*" wildcards in examples only)
-			var examples = new List<TrainingExample>
-			{
-				new TrainingExample(new Dictionary<string,string>
-				{
-					["Weather"] = "raining",
-					["Family"]  = "yes",
-					["Car"]     = "yes"
-				}, "museum"),
-
-				new TrainingExample(new Dictionary<string,string>
-				{
-					["Weather"] = "sunny",
-					["Family"]  = "yes",
-					["Car"]     = "yes"
-				}, "beach"),
-
-				new TrainingExample(new Dictionary<string,string>
-				{
-					["Weather"] = "*",
-					["Family"]  = "no",
-					["Car"]     = "yes"
-				}, "fishing"),
-
-				new TrainingExample(new Dictionary<string,string>
-				{
-					["Weather"] = "*",
-					["Family"]  = "*",
-					["Car"]     = "no"
-				}, "home"),
-			};
-
-			// 3. Train the tree
+			// 2. Train the tree
 			var root = C45Trainer.Train(examples, attributes);
 
-			// 4. Show rules
-			Console.WriteLine("=== Induced rules ===");
-			var rules = RuleExtractor.ExtractRules(root);
-			foreach (var r in rules)
-				Console.WriteLine(r);
+            // 3. Show rules
+            Console.WriteLine("=== Induced rules ===");
+            var rules = RuleExtractor.ExtractRules(root);
+            foreach (var r in rules)
+                Console.WriteLine(r);
 
-			Console.WriteLine();
+            Console.WriteLine();
 
-			// 5. Show tree
-			Console.WriteLine("=== Decision tree ===");
-			Console.WriteLine(RuleExtractor.FormatTree(root));
+            // 4. Show tree
+            Console.WriteLine("=== Decision tree ===");
+            Console.WriteLine(RuleExtractor.FormatTree(root));                        
 
-			Console.WriteLine();
+            // 5. Interactive consult
+            Console.WriteLine("=== Interactive consultation ===");
+            Console.WriteLine("Type 'why' to ask why I'm asking a question.");
+            Console.WriteLine();
 
-			// 6. Some test classifications
-			var q1 = new Dictionary<string, string>
-			{
-				["Weather"] = "raining",
-				["Family"] = "yes",
-				["Car"] = "yes"
-			};
+            InteractiveConsult(root, attributes);
 
-			var q2 = new Dictionary<string, string>
-			{
-				["Weather"] = "sunny",
-				["Family"] = "no",
-				["Car"] = "yes"
-			};
+            Console.WriteLine();
+            Console.WriteLine("Press ENTER to exit.");
+            Console.ReadLine();
+        }
 
-			var q3 = new Dictionary<string, string>
-			{
-				["Weather"] = "sunny",
-				["Family"] = "yes",
-				["Car"] = "no"
-			};
-
-			Console.WriteLine("=== Test queries ===");
-			PrintQueryResult(root, q1);
-			PrintQueryResult(root, q2);
-			PrintQueryResult(root, q3);
-
-			Console.WriteLine();
-
-			// 7. Interactive consult
-			Console.WriteLine("=== Interactive consultation ===");
-			Console.WriteLine("Type 'why' to ask why I'm asking a question.");
-			Console.WriteLine();
-
-			InteractiveConsult(root, attributes);
-
-			Console.WriteLine();
-			Console.WriteLine("Press ENTER to exit.");
-			Console.ReadLine();
-		}
-
-		private static void PrintQueryResult(TreeNode root, Dictionary<string, string> query)
+		static (List<AttributeDef> attrs, List<TrainingExample> examples) LoadExpertFromFile(string path)
 		{
-			string key = string.Join(", ", query.Select(kv => $"{kv.Key}={kv.Value}"));
-			var advice = C45Trainer.Classify(root, query);
-			Console.WriteLine($"{key} => {advice}");
-		}
+			var json = File.ReadAllText(path);
 
-		// Console-only interactive consultation
-		private static void InteractiveConsult(TreeNode root, List<AttributeDef> attributes)
-		{
-			var answers = new Dictionary<string, string>();
-
-			string FormatAnswers() =>
-				answers.Count == 0
-					? "(none yet)"
-					: string.Join(", ", answers.Select(kv => $"{kv.Key}={kv.Value}"));
-
-			foreach (var attr in attributes)
+			var options = new JsonSerializerOptions
 			{
-				while (true)
+				PropertyNameCaseInsensitive = true
+			};
+
+			var expert = JsonSerializer.Deserialize<ExpertFile>(json, options)
+						 ?? throw new InvalidOperationException("Could not deserialize expert file.");
+
+			if (expert.Attributes == null || expert.Examples == null)
+				throw new InvalidOperationException("Expert file missing attributes or examples.");
+
+			// Map ExpertAttribute -> AttributeDef
+			var attrs = expert.Attributes.Select(a =>
+			{
+				var kind = (a.Kind ?? "categorical").ToLowerInvariant();
+
+				return kind switch
 				{
-					Console.Write($"{attr.Name}? ({string.Join("/", attr.Domain)}): ");
-					var raw = Console.ReadLine();
-					var input = raw?.Trim();
+					"numeric" => new AttributeDef(a.Name),
+					"categorical" => new AttributeDef(a.Name, a.Domain ?? new List<string>()),
+					_ => throw new InvalidOperationException($"Unknown attribute kind '{a.Kind}' for '{a.Name}'.")
+				};
+			}).ToList();
 
-					if (string.IsNullOrEmpty(input))
-					{
-						Console.WriteLine("Please enter a value or 'why'.");
-						continue;
-					}
+			// Map ExpertExample -> TrainingExample
+			var examples = expert.Examples.Select(e =>
+				new TrainingExample(
+					new Dictionary<string, string>(e.Attributes, StringComparer.OrdinalIgnoreCase),
+					e.Label)
+			).ToList();
 
-					if (string.Equals(input, "why", StringComparison.OrdinalIgnoreCase))
-					{
-						var whyText = C45Trainer.Why(root, attr, answers);
-
-						Console.WriteLine();
-						Console.WriteLine("--- WHY ---");
-						Console.WriteLine(whyText);
-						Console.WriteLine();
-
-						continue;
-					}
-
-					var match = attr.Domain
-						.FirstOrDefault(d =>
-							string.Equals(d, input, StringComparison.OrdinalIgnoreCase));
-
-					if (match == null)
-					{
-						Console.WriteLine("Invalid value, please choose one of: " +
-										  string.Join(", ", attr.Domain) +
-										  " or type 'why'.");
-						continue;
-					}
-
-					answers[attr.Name] = match;
-					break;
-				}
-			}
-
-			var advice = C45Trainer.Classify(root, answers);
-			var how = C45Trainer.How(root, answers);
-
-			Console.WriteLine();
-			Console.WriteLine("=== RESULT ===");
-			Console.WriteLine($"Advice: {advice}");
-			Console.WriteLine();
-			Console.WriteLine("--- HOW ---");
-			Console.WriteLine(how);
+			return (attrs, examples);
 		}
-	}
-	// Attribute definition
-	public sealed class AttributeDef
-	{
-		public string Name { get; }
-		public IReadOnlyList<string> Domain { get; }
 
-		public AttributeDef(string name, IReadOnlyList<string> domain)
+		private static void PrintQueryResult(TreeNode root, Dictionary<string,string> query)
+        {
+            string key = string.Join(", ", query.Select(kv => $"{kv.Key}={kv.Value}"));
+            var advice = C45Trainer.Classify(root, query);
+            Console.WriteLine($"{key} => {advice}");
+        }
+
+        // Console-only interactive consultation
+        private static void InteractiveConsult(TreeNode root, List<AttributeDef> attributes)
+        {
+            var answers = new Dictionary<string,string>();
+
+            string FormatAnswers() =>
+                answers.Count == 0
+                    ? "(none yet)"
+                    : string.Join(", ", answers.Select(kv => $"{kv.Key}={kv.Value}"));
+
+            foreach (var attr in attributes)
+            {
+                while (true)
+                {
+                    string promptSuffix = attr.Kind == AttributeKind.Numeric
+                        ? "numeric"
+                        : string.Join("/", attr.Domain);
+
+                    Console.Write($"{attr.Name}? ({promptSuffix}): ");
+                    var raw = Console.ReadLine();
+                    var input = raw?.Trim();
+
+                    if (string.IsNullOrEmpty(input))
+                    {
+                        Console.WriteLine("Please enter a value or 'why'.");
+                        continue;
+                    }
+
+                    if (string.Equals(input, "why", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var whyText = C45Trainer.Why(root, attr, answers);
+
+                        Console.WriteLine();
+                        Console.WriteLine("--- WHY ---");
+                        Console.WriteLine(whyText);
+                        Console.WriteLine();
+
+                        continue;
+                    }
+
+                    if (attr.Kind == AttributeKind.Numeric)
+                    {
+                        if (!double.TryParse(input, NumberStyles.Float, CultureInfo.InvariantCulture, out var d))
+                        {
+                            Console.WriteLine("Invalid value, please enter a numeric value (e.g. 23.5) or type 'why'.");
+                            continue;
+                        }
+
+                        // Store numeric as invariant string
+                        answers[attr.Name] = d.ToString(CultureInfo.InvariantCulture);
+                    }
+                    else
+                    {
+                        var match = attr.Domain
+                            .FirstOrDefault(d =>
+                                string.Equals(d, input, StringComparison.OrdinalIgnoreCase));
+
+                        if (match == null)
+                        {
+                            Console.WriteLine("Invalid value, please choose one of: " +
+                                              string.Join(", ", attr.Domain) +
+                                              " or type 'why'.");
+                            continue;
+                        }
+
+                        answers[attr.Name] = match;
+                    }
+
+                    break;
+                }
+            }
+
+            var advice = C45Trainer.Classify(root, answers);
+            var how = C45Trainer.How(root, answers);
+
+            Console.WriteLine();
+            Console.WriteLine("=== RESULT ===");
+            Console.WriteLine($"Advice: {advice}");
+            Console.WriteLine();
+            Console.WriteLine("--- HOW ---");
+            Console.WriteLine(how);
+        }
+    }
+
+    public enum AttributeKind
+    {
+        Categorical,
+        Numeric
+    }
+
+    // Attribute definition
+    public sealed class AttributeDef
+    {
+        public string Name { get; }
+        public AttributeKind Kind { get; }
+        public IReadOnlyList<string> Domain { get; }
+
+        // Categorical
+        public AttributeDef(string name, IReadOnlyList<string> domain)
         {
             Name = name;
+            Kind = AttributeKind.Categorical;
             Domain = domain;
+        }
+
+        // Numeric
+        public AttributeDef(string name)
+        {
+            Name = name;
+            Kind = AttributeKind.Numeric;
+            Domain = Array.Empty<string>();
         }
     }
 
     // One training row: attributes -> label
     public sealed class TrainingExample
     {
-        public Dictionary<string, string> Attributes { get; }
+        public Dictionary<string,string> Attributes { get; }
         public string Label { get; }
 
-        public TrainingExample(Dictionary<string, string> attributes, string label)
+        public TrainingExample(Dictionary<string,string> attributes, string label)
         {
             Attributes = attributes;
             Label = label;
@@ -220,12 +231,20 @@ namespace ExpertEase
         public string? Label { get; set; }
 
         public string? AttributeName { get; set; }
-        public Dictionary<string, TreeNode>? Children { get; set; }
+
+        // Categorical children
+        public Dictionary<string,TreeNode>? Children { get; set; }
+
+        // Numeric split info
+        public bool IsNumericSplit { get; set; }
+        public double? Threshold { get; set; }
+        public TreeNode? LessOrEqualChild { get; set; }
+        public TreeNode? GreaterChild { get; set; }
 
         public LeafReason Reason { get; set; }
     }
 
-    // C4.5-style trainer (Gain Ratio) with wildcard support
+    // C4.5-style trainer (Gain Ratio) with wildcard and numeric support
     public static class C45Trainer
     {
         // Entry point: train tree
@@ -269,17 +288,35 @@ namespace ExpertEase
                 };
             }
 
-            // Choose attribute with best GainRatio
+            // Choose attribute with best GainRatio (categorical or numeric)
             AttributeDef? bestAttr = null;
             double bestScore = double.NegativeInfinity;
+            bool bestIsNumeric = false;
+            double? bestThreshold = null;
 
             foreach (var attr in attributes)
             {
-                double score = GainRatio(examples, attr);
-                if (score > bestScore)
+                if (attr.Kind == AttributeKind.Categorical)
                 {
-                    bestScore = score;
-                    bestAttr = attr;
+                    double score = GainRatioCategorical(examples, attr);
+                    if (score > bestScore)
+                    {
+                        bestScore = score;
+                        bestAttr = attr;
+                        bestIsNumeric = false;
+                        bestThreshold = null;
+                    }
+                }
+                else // Numeric
+                {
+                    var (score, threshold) = BestNumericSplit(examples, attr);
+                    if (score > bestScore && threshold.HasValue)
+                    {
+                        bestScore = score;
+                        bestAttr = attr;
+                        bestIsNumeric = true;
+                        bestThreshold = threshold;
+                    }
                 }
             }
 
@@ -294,54 +331,111 @@ namespace ExpertEase
                 };
             }
 
-            var node = new TreeNode
+            // Build node
+            if (bestIsNumeric)
             {
-                IsLeaf = false,
-                AttributeName = bestAttr.Name,
-                Children = new Dictionary<string, TreeNode>(),
-                Reason = LeafReason.None
-            };
-
-            // For each value in the domain, create a branch
-            foreach (var value in bestAttr.Domain)
-            {
-                // Subset: examples with a concrete (not "*") value equal to this domain value
-                var subset = examples
-                    .Where(e =>
-                        e.Attributes.TryGetValue(bestAttr.Name, out var v) &&
-                        v != "*" &&
-                        v == value)
-                    .ToList();
-
-                TreeNode child;
-
-                if (subset.Count == 0)
+                if (!bestThreshold.HasValue)
                 {
-                    // No examples for this branch: use majority of parent
-                    child = new TreeNode
+                    // Fallback safety
+                    return new TreeNode
                     {
                         IsLeaf = true,
                         Label = MajorityLabel(examples),
-                        Reason = LeafReason.MajorityOfNodeForMissingBranch
+                        Reason = LeafReason.NoUsefulSplit
                     };
                 }
-                else
-                {
-                    var remainingAttrs = attributes
-                        .Where(a => a.Name != bestAttr.Name)
-                        .ToList();
 
-                    child = Train(subset, remainingAttrs);
+                double threshold = bestThreshold.Value;
+
+                var node = new TreeNode
+                {
+                    IsLeaf = false,
+                    AttributeName = bestAttr.Name,
+                    IsNumericSplit = true,
+                    Threshold = threshold,
+                    Reason = LeafReason.None
+                };
+
+                // Partition examples with concrete numeric values for bestAttr
+                var left = new List<TrainingExample>();
+                var right = new List<TrainingExample>();
+
+                foreach (var e in examples)
+                {
+                    if (e.Attributes.TryGetValue(bestAttr.Name, out var raw) &&
+                        raw != "*" &&
+                        double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out var v))
+                    {
+                        if (v <= threshold)
+                            left.Add(e);
+                        else
+                            right.Add(e);
+                    }
+                    // Examples with "*" or no value for this attribute
+                    // do not go down either branch; they still influenced
+                    // the parent majority and other splits.
                 }
 
-                node.Children[value] = child;
-            }
+                var remainingAttrs = attributes
+                    .Where(a => a.Name != bestAttr.Name)
+                    .ToList();
 
-            return node;
+                node.LessOrEqualChild = Train(left, remainingAttrs);
+                node.GreaterChild     = Train(right, remainingAttrs);
+
+                return node;
+            }
+            else
+            {
+                // Categorical split
+                var node = new TreeNode
+                {
+                    IsLeaf = false,
+                    AttributeName = bestAttr.Name,
+                    Children = new Dictionary<string,TreeNode>(),
+                    Reason = LeafReason.None
+                };
+
+                foreach (var value in bestAttr.Domain)
+                {
+                    // Subset: examples with a concrete (not "*") value equal to this domain value
+                    var subset = examples
+                        .Where(e =>
+                            e.Attributes.TryGetValue(bestAttr.Name, out var v) &&
+                            v != "*" &&
+                            v == value)
+                        .ToList();
+
+                    TreeNode child;
+
+                    if (subset.Count == 0)
+                    {
+                        // No examples for this branch: use majority of parent
+                        child = new TreeNode
+                        {
+                            IsLeaf = true,
+                            Label = MajorityLabel(examples),
+                            Reason = LeafReason.MajorityOfNodeForMissingBranch
+                        };
+                    }
+                    else
+                    {
+                        var remainingAttrs = attributes
+                            .Where(a => a.Name != bestAttr.Name)
+                            .ToList();
+
+                        child = Train(subset, remainingAttrs);
+                    }
+
+                    node.Children[value] = child;
+                }
+
+                return node;
+            }
         }
 
         // Classify a fully specified case (no "*" here)
-        public static string Classify(TreeNode root, IDictionary<string, string> input)
+        public static string Classify(TreeNode root, IDictionary<string,string> input)
         {
             if (root == null) throw new ArgumentNullException(nameof(root));
             if (input == null) throw new ArgumentNullException(nameof(input));
@@ -353,6 +447,29 @@ namespace ExpertEase
                 if (node.AttributeName == null)
                     throw new InvalidOperationException("Non-leaf node without AttributeName.");
 
+                if (node.IsNumericSplit)
+                {
+                    if (!input.TryGetValue(node.AttributeName, out var raw))
+                        throw new ArgumentException($"Missing attribute '{node.AttributeName}' in input.");
+
+                    if (node.Threshold == null ||
+                        node.LessOrEqualChild == null ||
+                        node.GreaterChild == null)
+                    {
+                        throw new InvalidOperationException("Numeric split node not fully initialized.");
+                    }
+
+                    if (!double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out var v))
+                        throw new ArgumentException($"Attribute '{node.AttributeName}' must be numeric.");
+
+                    node = v <= node.Threshold.Value
+                        ? node.LessOrEqualChild
+                        : node.GreaterChild;
+
+                    continue;
+                }
+
+                // Categorical
                 if (node.Children == null)
                     throw new InvalidOperationException("Non-leaf node without children.");
 
@@ -373,7 +490,7 @@ namespace ExpertEase
         }
 
         // HOW: explain path + leaf reason
-        public static string How(TreeNode root, IDictionary<string, string> input)
+        public static string How(TreeNode root, IDictionary<string,string> input)
         {
             if (root == null) throw new ArgumentNullException(nameof(root));
             if (input == null) throw new ArgumentNullException(nameof(input));
@@ -387,6 +504,29 @@ namespace ExpertEase
             {
                 if (node.AttributeName == null)
                     throw new InvalidOperationException("Non-leaf node without AttributeName.");
+
+                if (node.IsNumericSplit)
+                {
+                    if (node.Threshold == null ||
+                        node.LessOrEqualChild == null ||
+                        node.GreaterChild == null)
+                    {
+                        throw new InvalidOperationException("Numeric split node not fully initialized.");
+                    }
+
+                    if (!input.TryGetValue(node.AttributeName, out var raw))
+                        throw new ArgumentException($"Missing attribute '{node.AttributeName}' in input.");
+
+                    if (!double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out var v))
+                        throw new ArgumentException($"Attribute '{node.AttributeName}' must be numeric.");
+
+                    var branch = v <= node.Threshold.Value ? "<=" : ">";
+                    sb.AppendLine(
+                        $"- Tested {node.AttributeName}, your value was {v}, threshold is {node.Threshold.Value}, so I followed the branch {node.AttributeName} {branch} {node.Threshold.Value}.");
+
+                    node = v <= node.Threshold.Value ? node.LessOrEqualChild : node.GreaterChild;
+                    continue;
+                }
 
                 if (node.Children == null)
                     throw new InvalidOperationException("Non-leaf node without children.");
@@ -428,7 +568,7 @@ namespace ExpertEase
         public static string Why(
             TreeNode root,
             AttributeDef attribute,
-            IDictionary<string, string> knownAnswers)
+            IDictionary<string,string> knownAnswers)
         {
             if (root == null) throw new ArgumentNullException(nameof(root));
             if (attribute == null) throw new ArgumentNullException(nameof(attribute));
@@ -448,16 +588,19 @@ namespace ExpertEase
             {
                 sb.AppendLine($"the advice is already determined: {{ {string.Join(", ", currentLabels)} }}.");
                 sb.AppendLine("I'm still asking due to the fixed question order, but this answer will not change the conclusion.");
+                return sb.ToString();
             }
-            else
+
+            sb.AppendLine($"the advice could still be one of: {{ {string.Join(", ", currentLabels)} }}.");
+            sb.AppendLine();
+
+            if (attribute.Kind == AttributeKind.Categorical)
             {
-                sb.AppendLine($"the advice could still be one of: {{ {string.Join(", ", currentLabels)} }}.");
-                sb.AppendLine();
                 sb.AppendLine("Depending on your answer to this question, the possible advice becomes:");
 
                 foreach (var value in attribute.Domain)
                 {
-                    var extended = new Dictionary<string, string>(knownAnswers)
+                    var extended = new Dictionary<string,string>(knownAnswers)
                     {
                         [attribute.Name] = value
                     };
@@ -466,292 +609,601 @@ namespace ExpertEase
                     sb.AppendLine($"- If {attribute.Name} = {value}, possible advice: {{ {string.Join(", ", labelsForValue)} }}");
                 }
             }
+            else
+            {
+                sb.AppendLine("This attribute is numeric. Different ranges of values may lead to different advice,");
+                sb.AppendLine("but I can't enumerate all possibilities here. Try different numeric values to see how the advice changes.");
+            }
 
             return sb.ToString();
         }
 
-        // Internal: classify with partial answers; missing attrs = explore all branches
-        private static HashSet<string> ClassifyWithUnknowns(
-            TreeNode node,
-            IDictionary<string, string> partialAnswers)
-        {
-            var result = new HashSet<string>();
+		// Internal: classify with partial answers; missing attrs = explore all branches
+		private static HashSet<string> ClassifyWithUnknowns(
+			TreeNode node,
+			IDictionary<string, string> partialAnswers)
+		{
+			var result = new HashSet<string>();
 
-            void Recurse(TreeNode n)
-            {
-                if (n.IsLeaf)
-                {
-                    if (n.Label != null)
-                        result.Add(n.Label);
-                    return;
-                }
+			void Recurse(TreeNode n)
+			{
+				if (n.IsLeaf)
+				{
+					if (n.Label != null)
+						result.Add(n.Label);
+					return;
+				}
 
-                if (n.AttributeName == null || n.Children == null)
-                    throw new InvalidOperationException("Invalid non-leaf node.");
+				if (n.AttributeName == null)
+					throw new InvalidOperationException("Invalid non-leaf node.");
 
-                if (partialAnswers.TryGetValue(n.AttributeName, out var value))
-                {
-                    if (n.Children.TryGetValue(value, out var child))
-                        Recurse(child);
-                    // If value not found, we could explore all children instead,
-                    // but for now we'll just ignore that inconsistent answer.
-                }
-                else
-                {
-                    // No answer for this attribute: explore all branches
-                    foreach (var child in n.Children.Values)
-                        Recurse(child);
-                }
-            }
+				if (n.IsNumericSplit)
+				{
+					if (n.Threshold == null ||
+						n.LessOrEqualChild == null ||
+						n.GreaterChild == null)
+					{
+						throw new InvalidOperationException("Numeric split node not fully initialized.");
+					}
 
-            Recurse(node);
-            return result;
-        }
+					if (partialAnswers.TryGetValue(n.AttributeName, out var raw))
+					{
+						if (double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out var v))
+						{
+							var child = v <= n.Threshold.Value
+								? n.LessOrEqualChild
+								: n.GreaterChild;
+							Recurse(child);
+						}
+						// If cannot parse, ignore this inconsistent answer and explore both
+						else
+						{
+							Recurse(n.LessOrEqualChild);
+							Recurse(n.GreaterChild);
+						}
+					}
+					else
+					{
+						// No answer: explore both branches
+						Recurse(n.LessOrEqualChild);
+						Recurse(n.GreaterChild);
+					}
 
-        // === C4.5 maths ===
+					return;
+				}
 
-        // EntropyInfo(S) over labels
-        private static double EntropyInfo(IReadOnlyList<TrainingExample> examples)
-        {
-            int n = examples.Count;
-            if (n == 0) return 0.0;
+				if (n.Children == null)
+					throw new InvalidOperationException("Invalid non-leaf node.");
 
-            return examples
-                .GroupBy(e => e.Label)
-                .Select(g =>
-                {
-                    double p = (double)g.Count() / n;
-                    return -p * Math.Log(p, 2.0);
-                })
-                .Sum();
-        }
+				if (partialAnswers.TryGetValue(n.AttributeName, out var value))
+				{
+					if (n.Children.TryGetValue(value, out var child))
+						Recurse(child);
+					// If value not found in children, ignore and explore all branches
+					else
+					{
+						foreach (var c in n.Children.Values)
+							Recurse(c);
+					}
+				}
+				else
+				{
+					// No answer for this attribute: explore all branches
+					foreach (var child in n.Children.Values)
+						Recurse(child);
+				}
+			}
 
-        // InfoGain(S, A) with "*" treated as "no info" for A
-        private static double InfoGain(
-            IReadOnlyList<TrainingExample> examples,
-            AttributeDef attribute)
-        {
-            if (examples == null || examples.Count == 0)
-                return 0.0;
+			Recurse(node);
+			return result;
+		}
 
-            var known = examples
-                .Where(e =>
-                    e.Attributes.TryGetValue(attribute.Name, out var v) &&
-                    v != "*")
-                .ToList();
+		// === C4.5 maths ===
 
-            int knownCount = known.Count;
-            if (knownCount == 0)
-                return 0.0;
+		// EntropyInfo(S) over labels (examples)
+		private static double EntropyInfo(IReadOnlyList<TrainingExample> examples)
+		{
+			int n = examples.Count;
+			if (n == 0) return 0.0;
 
-            double hBefore = EntropyInfo(known);
+			return examples
+				.GroupBy(e => e.Label)
+				.Select(g =>
+				{
+					double p = (double)g.Count() / n;
+					return -p * Math.Log(p, 2.0);
+				})
+				.Sum();
+		}
 
-            double hAfter = 0.0;
+		// EntropyInfo over a list of labels (for numeric splits)
+		private static double EntropyInfo(IReadOnlyList<string> labels)
+		{
+			int n = labels.Count;
+			if (n == 0) return 0.0;
 
-            foreach (var value in attribute.Domain)
-            {
-                var subset = known
-                    .Where(e => e.Attributes[attribute.Name] == value)
-                    .ToList();
+			return labels
+				.GroupBy(l => l)
+				.Select(g =>
+				{
+					double p = (double)g.Count() / n;
+					return -p * Math.Log(p, 2.0);
+				})
+				.Sum();
+		}
 
-                if (subset.Count == 0) continue;
+		// InfoGain(S, A) for categorical A, with "*" treated as "no info" for A
+		private static double InfoGain(
+			IReadOnlyList<TrainingExample> examples,
+			AttributeDef attribute)
+		{
+			if (examples == null || examples.Count == 0)
+				return 0.0;
 
-                double weight = (double)subset.Count / knownCount;
-                hAfter += weight * EntropyInfo(subset);
-            }
+			if (attribute.Kind != AttributeKind.Categorical)
+				throw new ArgumentException("InfoGain is only for categorical attributes here.");
 
-            double infoGainKnown = hBefore - hAfter;
+			var known = examples
+				.Where(e =>
+					e.Attributes.TryGetValue(attribute.Name, out var v) &&
+					v != "*")
+				.ToList();
 
-            double knownFraction = (double)knownCount / examples.Count;
+			int knownCount = known.Count;
+			if (knownCount == 0)
+				return 0.0;
 
-            return knownFraction * infoGainKnown;
-        }
+			double hBefore = EntropyInfo(known);
 
-        // SplitInfo(S, A) with "*" treated as "no info" for A
-        private static double SplitInfo(
-            IReadOnlyList<TrainingExample> examples,
-            AttributeDef attribute)
-        {
-            if (examples == null || examples.Count == 0)
-                return 0.0;
+			double hAfter = 0.0;
 
-            var known = examples
-                .Where(e =>
-                    e.Attributes.TryGetValue(attribute.Name, out var v) &&
-                    v != "*")
-                .ToList();
+			foreach (var value in attribute.Domain)
+			{
+				var subset = known
+					.Where(e => e.Attributes[attribute.Name] == value)
+					.ToList();
 
-            int knownCount = known.Count;
-            if (knownCount == 0) return 0.0;
+				if (subset.Count == 0) continue;
 
-            double result = 0.0;
+				double weight = (double)subset.Count / knownCount;
+				hAfter += weight * EntropyInfo(subset);
+			}
 
-            foreach (var value in attribute.Domain)
-            {
-                int subsetCount = known
-                    .Count(e => e.Attributes[attribute.Name] == value);
+			double infoGainKnown = hBefore - hAfter;
 
-                if (subsetCount == 0) continue;
+			double knownFraction = (double)knownCount / examples.Count;
 
-                double p = (double)subsetCount / knownCount;
-                result += -p * Math.Log(p, 2.0);
-            }
+			return knownFraction * infoGainKnown;
+		}
 
-            return result;
-        }
+		// SplitInfo(S, A) for categorical A, with "*" treated as "no info" for A
+		private static double SplitInfo(
+			IReadOnlyList<TrainingExample> examples,
+			AttributeDef attribute)
+		{
+			if (examples == null || examples.Count == 0)
+				return 0.0;
 
-        // GainRatio(S, A) = InfoGain / SplitInfo
-        private static double GainRatio(
-            IReadOnlyList<TrainingExample> examples,
-            AttributeDef attribute)
-        {
-            double infoGain = InfoGain(examples, attribute);
-            if (infoGain <= 0.0) return 0.0;
+			if (attribute.Kind != AttributeKind.Categorical)
+				throw new ArgumentException("SplitInfo is only for categorical attributes here.");
 
-            double splitInfo = SplitInfo(examples, attribute);
-            if (splitInfo == 0.0) return 0.0;
+			var known = examples
+				.Where(e =>
+					e.Attributes.TryGetValue(attribute.Name, out var v) &&
+					v != "*")
+				.ToList();
 
-            return infoGain / splitInfo;
-        }
+			int knownCount = known.Count;
+			if (knownCount == 0) return 0.0;
 
-        // Helpers
+			double result = 0.0;
 
-        private static bool AllSameLabel(IReadOnlyList<TrainingExample> examples, out string label)
-        {
-            label = examples[0].Label;
-            for (int i = 1; i < examples.Count; i++)
-            {
-                if (examples[i].Label != label)
-                    return false;
-            }
-            return true;
-        }
+			foreach (var value in attribute.Domain)
+			{
+				int subsetCount = known
+					.Count(e => e.Attributes[attribute.Name] == value);
 
-        private static string MajorityLabel(IReadOnlyList<TrainingExample> examples)
-        {
-            return examples
-                .GroupBy(e => e.Label)
-                .OrderByDescending(g => g.Count())
-                .Select(g => g.Key)
-                .First();
-        }
-    }
+				if (subsetCount == 0) continue;
 
-    // Rule extraction + tree formatting
-    public static class RuleExtractor
-    {
-        public static List<string> ExtractRules(TreeNode root)
-        {
-            var rules = new List<string>();
-            var path = new List<(string Attr, string Value)>();
-            Traverse(root, path, rules);
-            return rules;
-        }
+				double p = (double)subsetCount / knownCount;
+				result += -p * Math.Log(p, 2.0);
+			}
 
-        private static void Traverse(
-            TreeNode node,
-            List<(string Attr, string Value)> path,
-            List<string> rules)
-        {
-            if (node.IsLeaf)
-            {
-                var sb = new StringBuilder();
+			return result;
+		}
 
-                if (path.Count == 0)
-                {
-                    sb.Append($"IF <always> THEN Advice = {node.Label}");
-                }
-                else
-                {
-                    sb.Append("IF ");
-                    sb.Append(string.Join(" AND ",
-                        path.Select(p => $"{p.Attr} = {p.Value}")));
-                    sb.Append($" THEN Advice = {node.Label}");
-                }
+		// GainRatio(S, A) for categorical A
+		private static double GainRatioCategorical(
+			IReadOnlyList<TrainingExample> examples,
+			AttributeDef attribute)
+		{
+			if (attribute.Kind != AttributeKind.Categorical)
+				return 0.0;
 
-                rules.Add(sb.ToString());
-                return;
-            }
+			double infoGain = InfoGain(examples, attribute);
+			if (infoGain <= 0.0) return 0.0;
 
-            if (node.AttributeName == null || node.Children == null)
-                throw new InvalidOperationException("Invalid non-leaf node.");
+			double splitInfo = SplitInfo(examples, attribute);
+			if (splitInfo == 0.0) return 0.0;
 
-            foreach (var kv in node.Children)
-            {
-                path.Add((node.AttributeName, kv.Key));
-                Traverse(kv.Value, path, rules);
-                path.RemoveAt(path.Count - 1);
-            }
-        }
+			return infoGain / splitInfo;
+		}
 
-        // ASCII tree formatter (console-friendly)
-        public static string FormatTree(TreeNode root)
-        {
-            if (root == null) throw new ArgumentNullException(nameof(root));
+		// Numeric: find best threshold & corresponding GainRatio
+		private static (double bestScore, double? bestThreshold) BestNumericSplit(
+			IReadOnlyList<TrainingExample> examples,
+			AttributeDef attribute)
+		{
+			if (attribute.Kind != AttributeKind.Numeric)
+				return (0.0, null);
 
-            var sb = new StringBuilder();
+			// Collect numeric samples for this attribute
+			var samples = new List<(double value, string label)>();
 
-            if (root.IsLeaf)
-            {
-                sb.AppendLine(root.Label ?? "(leaf)");
-                return sb.ToString();
-            }
+			foreach (var e in examples)
+			{
+				if (e.Attributes.TryGetValue(attribute.Name, out var raw) &&
+					raw != "*" &&
+					double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out var v))
+				{
+					samples.Add((v, e.Label));
+				}
+			}
 
-            // Root decision node at column 0
-            sb.AppendLine($"{root.AttributeName}?");
-            sb.AppendLine("│");
+			int knownCount = samples.Count;
+			if (knownCount < 2)
+				return (0.0, null);
 
-            RenderChildren(root, labelCol: 0, sb);
-            return sb.ToString();
-        }
+			// Sort by value
+			samples.Sort((a, b) => a.value.CompareTo(b.value));
 
-        private static void RenderChildren(TreeNode node, int labelCol, StringBuilder sb)
-        {
-            if (node.Children == null || node.Children.Count == 0)
-                return;
+			// Precompute parent entropy on known labels
+			var allLabels = samples.Select(s => s.label).ToList();
+			double hBefore = EntropyInfo(allLabels);
 
-            var keys = node.Children.Keys.OrderBy(k => k).ToList();
+			double bestScore = double.NegativeInfinity;
+			double? bestThreshold = null;
 
-            for (int i = 0; i < keys.Count; i++)
-            {
-                var edgeLabel = keys[i];
-                var child = node.Children[edgeLabel];
-                bool isLast = (i == keys.Count - 1);
+			// Only consider thresholds between distinct values
+			for (int i = 0; i < samples.Count - 1; i++)
+			{
+				double v1 = samples[i].value;
+				double v2 = samples[i + 1].value;
 
-                string connector = isLast ? "└─ " : "├─ ";
+				if (Math.Abs(v1 - v2) < 1e-9)
+					continue;
 
-                var line = new StringBuilder();
-                line.Append(' ', labelCol);
-                line.Append(connector);
-                line.Append(edgeLabel);
+				double threshold = (v1 + v2) / 2.0;
 
-                if (child.IsLeaf)
-                {
-                    line.Append(" -> ");
-                    line.Append(child.Label);
-                    sb.AppendLine(line.ToString());
-                }
-                else
-                {
-                    line.Append(" -> ");
-                    line.Append(child.AttributeName);
-                    line.Append("?");
-                    sb.AppendLine(line.ToString());
+				var leftLabels = new List<string>();
+				var rightLabels = new List<string>();
 
-                    int childLabelCol =
-                        labelCol +
-                        connector.Length +
-                        edgeLabel.Length +
-                        " -> ".Length;
+				foreach (var (value, label) in samples)
+				{
+					if (value <= threshold)
+						leftLabels.Add(label);
+					else
+						rightLabels.Add(label);
+				}
 
-                    // Vertical line under first letter of child's label
-                    sb.AppendLine(new string(' ', childLabelCol) + "│");
+				int leftCount = leftLabels.Count;
+				int rightCount = rightLabels.Count;
+				if (leftCount == 0 || rightCount == 0)
+					continue;
 
-                    RenderChildren(child, childLabelCol, sb);
-                }
-            }
-        }
-    }
+				double hLeft = EntropyInfo(leftLabels);
+				double hRight = EntropyInfo(rightLabels);
+
+				double knownTotal = samples.Count;
+				double hAfter = (leftCount / knownTotal) * hLeft +
+								(rightCount / knownTotal) * hRight;
+
+				double infoGainKnown = hBefore - hAfter;
+
+				// As with categorical, down-weight by fraction of all examples that have a value
+				double knownFraction = knownTotal / examples.Count;
+				double infoGain = knownFraction * infoGainKnown;
+				if (infoGain <= 0.0)
+					continue;
+
+				// SplitInfo for binary partition
+				double splitInfo = 0.0;
+
+				double pLeft = leftCount / knownTotal;
+				double pRight = rightCount / knownTotal;
+
+				splitInfo += -pLeft * Math.Log(pLeft, 2.0);
+				splitInfo += -pRight * Math.Log(pRight, 2.0);
+
+				if (splitInfo == 0.0)
+					continue;
+
+				double gainRatio = infoGain / splitInfo;
+
+				if (gainRatio > bestScore)
+				{
+					bestScore = gainRatio;
+					bestThreshold = threshold;
+				}
+			}
+
+			if (double.IsNegativeInfinity(bestScore))
+				return (0.0, null);
+
+			return (bestScore, bestThreshold);
+		}
+
+		// Helpers
+
+		private static bool AllSameLabel(IReadOnlyList<TrainingExample> examples, out string label)
+		{
+			label = examples[0].Label;
+			for (int i = 1; i < examples.Count; i++)
+			{
+				if (examples[i].Label != label)
+					return false;
+			}
+			return true;
+		}
+
+		private static string MajorityLabel(IReadOnlyList<TrainingExample> examples)
+		{
+			return examples
+				.GroupBy(e => e.Label)
+				.OrderByDescending(g => g.Count())
+				.Select(g => g.Key)
+				.First();
+		}
+	}
+
+	// Rule extraction + tree formatting
+	public static class RuleExtractor
+	{
+		public static List<string> ExtractRules(TreeNode root)
+		{
+			var rules = new List<string>();
+			var path = new List<(string Attr, string Value)>();
+			Traverse(root, path, rules);
+			return rules;
+		}
+
+		private static void Traverse(
+			TreeNode node,
+			List<(string Attr, string Value)> path,
+			List<string> rules)
+		{
+			if (node.IsLeaf)
+			{
+				var sb = new StringBuilder();
+
+				if (path.Count == 0)
+				{
+					sb.Append($"IF <always> THEN Advice = {node.Label}");
+				}
+				else
+				{
+					sb.Append("IF ");
+					sb.Append(string.Join(" AND ",
+						path.Select(p => $"{p.Attr} = {p.Value}")));
+					sb.Append($" THEN Advice = {node.Label}");
+				}
+
+				rules.Add(sb.ToString());
+				return;
+			}
+
+			if (node.AttributeName == null)
+				throw new InvalidOperationException("Invalid non-leaf node.");
+
+			if (node.IsNumericSplit)
+			{
+				if (node.Threshold == null ||
+					node.LessOrEqualChild == null ||
+					node.GreaterChild == null)
+				{
+					throw new InvalidOperationException("Numeric split node not fully initialized.");
+				}
+
+				path.Add((node.AttributeName, $"<= {node.Threshold.Value}"));
+				Traverse(node.LessOrEqualChild, path, rules);
+				path.RemoveAt(path.Count - 1);
+
+				path.Add((node.AttributeName, $"> {node.Threshold.Value}"));
+				Traverse(node.GreaterChild, path, rules);
+				path.RemoveAt(path.Count - 1);
+			}
+			else
+			{
+				if (node.Children == null)
+					throw new InvalidOperationException("Invalid non-leaf node.");
+
+				foreach (var kv in node.Children)
+				{
+					path.Add((node.AttributeName, kv.Key));
+					Traverse(kv.Value, path, rules);
+					path.RemoveAt(path.Count - 1);
+				}
+			}
+		}
+
+		// ASCII tree formatter (console-friendly), supports both categorical and numeric nodes
+		public static string FormatTree(TreeNode root)
+		{
+			if (root == null) throw new ArgumentNullException(nameof(root));
+
+			var sb = new StringBuilder();
+
+			if (root.IsLeaf)
+			{
+				sb.AppendLine(root.Label ?? "(leaf)");
+				return sb.ToString();
+			}
+
+			// Root decision node at column 0
+			sb.AppendLine($"{root.AttributeName}?");
+			sb.AppendLine("│");
+
+			RenderChildren(root, labelCol: 0, sb);
+			return sb.ToString();
+		}
+
+		private static void RenderChildren(TreeNode node, int labelCol, StringBuilder sb)
+		{
+			if (node.IsNumericSplit)
+			{
+				if (node.Threshold == null ||
+					node.LessOrEqualChild == null ||
+					node.GreaterChild == null)
+				{
+					throw new InvalidOperationException("Numeric split node not fully initialized.");
+				}
+
+				string th = node.Threshold.Value.ToString(CultureInfo.InvariantCulture);
+
+				// <= branch
+				var line1 = new StringBuilder();
+				line1.Append(' ', labelCol);
+				line1.Append("├─ ");
+				line1.Append($"<= {th}");
+
+				if (node.LessOrEqualChild.IsLeaf)
+				{
+					line1.Append(" -> ");
+					line1.Append(node.LessOrEqualChild.Label);
+					sb.AppendLine(line1.ToString());
+				}
+				else
+				{
+					line1.Append(" -> ");
+					line1.Append(node.LessOrEqualChild.AttributeName);
+					line1.Append("?");
+					sb.AppendLine(line1.ToString());
+
+					int childLabelCol =
+						labelCol +
+						"├─ ".Length +
+						$"<= {th}".Length +
+						" -> ".Length;
+
+					sb.AppendLine(new string(' ', childLabelCol) + "│");
+
+					RenderChildren(node.LessOrEqualChild, childLabelCol, sb);
+				}
+
+				// > branch
+				var line2 = new StringBuilder();
+				line2.Append(' ', labelCol);
+				line2.Append("└─ ");
+				line2.Append($"> {th}");
+
+				if (node.GreaterChild.IsLeaf)
+				{
+					line2.Append(" -> ");
+					line2.Append(node.GreaterChild.Label);
+					sb.AppendLine(line2.ToString());
+				}
+				else
+				{
+					line2.Append(" -> ");
+					line2.Append(node.GreaterChild.AttributeName);
+					line2.Append("?");
+					sb.AppendLine(line2.ToString());
+
+					int childLabelCol =
+						labelCol +
+						"└─ ".Length +
+						$"> {th}".Length +
+						" -> ".Length;
+
+					sb.AppendLine(new string(' ', childLabelCol) + "│");
+
+					RenderChildren(node.GreaterChild, childLabelCol, sb);
+				}
+
+				return;
+			}
+
+			if (node.Children == null || node.Children.Count == 0)
+				return;
+
+			var keys = node.Children.Keys.OrderBy(k => k).ToList();
+
+			for (int i = 0; i < keys.Count; i++)
+			{
+				var edgeLabel = keys[i];
+				var child = node.Children[edgeLabel];
+				bool isLast = (i == keys.Count - 1);
+
+				string connector = isLast ? "└─ " : "├─ ";
+
+				var line = new StringBuilder();
+				line.Append(' ', labelCol);
+				line.Append(connector);
+				line.Append(edgeLabel);
+
+				if (child.IsLeaf)
+				{
+					line.Append(" -> ");
+					line.Append(child.Label);
+					sb.AppendLine(line.ToString());
+				}
+				else
+				{
+					line.Append(" -> ");
+					line.Append(child.AttributeName);
+					line.Append("?");
+					sb.AppendLine(line.ToString());
+
+					int childLabelCol =
+						labelCol +
+						connector.Length +
+						edgeLabel.Length +
+						" -> ".Length;
+
+					// Vertical line under first letter of child's label
+					sb.AppendLine(new string(' ', childLabelCol) + "│");
+
+					RenderChildren(child, childLabelCol, sb);
+				}
+			}
+		}
+	}
+
+	public sealed class ExpertFile
+	{
+		public string? Name { get; set; }
+		public string? Description { get; set; }
+
+		public List<ExpertAttribute>? Attributes { get; set; }
+		public List<ExpertExample>? Examples { get; set; }
+
+		public List<ExpertRule>? Rules { get; set; }  // optional, can be null
+	}
+
+	public sealed class ExpertAttribute
+	{
+		public string Name { get; set; } = "";
+		public string Kind { get; set; } = "categorical"; // "categorical" or "numeric"
+		public List<string>? Domain { get; set; }         // for categorical
+	}
+
+	public sealed class ExpertExample
+	{
+		public string Label { get; set; } = "";
+		public Dictionary<string, string> Attributes { get; set; } = new();
+	}
+
+	public sealed class ExpertRule
+	{
+		public List<ExpertCondition> If { get; set; } = new();
+		public string Then { get; set; } = "";
+	}
+
+	public sealed class ExpertCondition
+	{
+		public string Attr { get; set; } = "";
+		public string Op { get; set; } = "=";   // "=", "<=", ">" etc. if you ever want
+		public string Value { get; set; } = "";
+	}
 
 }
-

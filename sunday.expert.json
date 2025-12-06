@@ -1,0 +1,55 @@
+{
+  "name": "SundayAdvisor",
+  "description": "What to do on Sunday based on weather, family, car.",
+  "attributes": [
+    {
+      "name": "Weather",
+      "kind": "categorical",
+      "domain": [ "raining", "sunny" ]
+    },
+    {
+      "name": "Family",
+      "kind": "categorical",
+      "domain": [ "yes", "no" ]
+    },
+    {
+      "name": "Car",
+      "kind": "categorical",
+      "domain": [ "yes", "no" ]
+    }    
+  ],
+  "examples": [
+    {
+      "label": "museum",
+      "attributes": {
+        "Weather": "raining",
+        "Family": "yes",
+        "Car": "yes"        
+      }
+    },
+    {
+      "label": "beach",
+      "attributes": {
+        "Weather": "sunny",
+        "Family": "yes",
+        "Car": "yes"        
+      }
+    },
+    {
+      "label": "fishing",
+      "attributes": {
+        "Weather": "*",
+        "Family": "no",
+        "Car": "yes"        
+      }
+    },
+    {
+      "label": "home",
+      "attributes": {
+        "Weather": "*",
+        "Family": "*",
+        "Car": "no"        
+      }
+    }
+  ]
+}
