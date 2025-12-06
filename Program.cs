@@ -15,7 +15,7 @@ namespace ExpertEase
         public static void Main()
 		{
 			// 1. Load the attributes and examples
-			var (attributes, examples) = LoadExpertFromFile("flightdisruption.expert.json");
+			var (attributes, examples) = LoadExpertFromFile("medical_triage.json");
 
 			// 2. Train the tree
 			var root = C45Trainer.Train(examples, attributes);

@@ -1,0 +1,234 @@
+{
+  "name": "CrewDisruptionAdvisor",
+  "description": "Advises how to handle crew-related flight disruptions (delays, cancellations, crew no-shows) using a C4.5-style expert system.",
+  "attributes": [
+    {
+      "name": "DisruptionType",
+      "kind": "categorical",
+      "domain": [ "delay", "cancel", "crew_no_show" ]
+    },
+    {
+      "name": "FlightCriticality",
+      "kind": "categorical",
+      "domain": [ "hub_wave", "last_bank", "off_peak" ]
+    },
+    {
+      "name": "DutyComplexity",
+      "kind": "categorical",
+      "domain": [ "single_leg", "multi_leg" ]
+    },
+    {
+      "name": "LegalRestRisk",
+      "kind": "categorical",
+      "domain": [ "low", "medium", "high" ]
+    },
+    {
+      "name": "AlternateCrewAvailability",
+      "kind": "categorical",
+      "domain": [ "none", "limited", "high" ]
+    },
+    {
+      "name": "BaseMatch",
+      "kind": "categorical",
+      "domain": [ "same_base", "different_base" ]
+    },
+    {
+      "name": "DelayMinutes",
+      "kind": "numeric"
+    }
+  ],
+  "examples": [
+    {
+      "label": "delay_and_keep_crew",
+      "attributes": {
+        "DisruptionType": "delay",
+        "FlightCriticality": "hub_wave",
+        "DutyComplexity": "single_leg",
+        "LegalRestRisk": "low",
+        "AlternateCrewAvailability": "limited",
+        "BaseMatch": "same_base",
+        "DelayMinutes": "25"
+      }
+    },
+    {
+      "label": "delay_and_keep_crew",
+      "attributes": {
+        "DisruptionType": "delay",
+        "FlightCriticality": "off_peak",
+        "DutyComplexity": "single_leg",
+        "LegalRestRisk": "low",
+        "AlternateCrewAvailability": "none",
+        "BaseMatch": "same_base",
+        "DelayMinutes": "35"
+      }
+    },
+    {
+      "label": "delay_and_keep_crew",
+      "attributes": {
+        "DisruptionType": "delay",
+        "FlightCriticality": "off_peak",
+        "DutyComplexity": "multi_leg",
+        "LegalRestRisk": "medium",
+        "AlternateCrewAvailability": "none",
+        "BaseMatch": "same_base",
+        "DelayMinutes": "50"
+      }
+    },
+    {
+      "label": "break_pairing_use_reserve",
+      "attributes": {
+        "DisruptionType": "delay",
+        "FlightCriticality": "hub_wave",
+        "DutyComplexity": "multi_leg",
+        "LegalRestRisk": "medium",
+        "AlternateCrewAvailability": "high",
+        "BaseMatch": "same_base",
+        "DelayMinutes": "90"
+      }
+    },
+    {
+      "label": "break_pairing_use_reserve",
+      "attributes": {
+        "DisruptionType": "delay",
+        "FlightCriticality": "last_bank",
+        "DutyComplexity": "multi_leg",
+        "LegalRestRisk": "high",
+        "AlternateCrewAvailability": "high",
+        "BaseMatch": "same_base",
+        "DelayMinutes": "120"
+      }
+    },
+    {
+      "label": "delay_and_keep_crew",
+      "attributes": {
+        "DisruptionType": "delay",
+        "FlightCriticality": "hub_wave",
+        "DutyComplexity": "multi_leg",
+        "LegalRestRisk": "medium",
+        "AlternateCrewAvailability": "none",
+        "BaseMatch": "same_base",
+        "DelayMinutes": "95"
+      }
+    },
+    {
+      "label": "break_pairing_use_reserve",
+      "attributes": {
+        "DisruptionType": "delay",
+        "FlightCriticality": "hub_wave",
+        "DutyComplexity": "multi_leg",
+        "LegalRestRisk": "medium",
+        "AlternateCrewAvailability": "high",
+        "BaseMatch": "different_base",
+        "DelayMinutes": "210"
+      }
+    },
+    {
+      "label": "cancel_flight",
+      "attributes": {
+        "DisruptionType": "delay",
+        "FlightCriticality": "off_peak",
+        "DutyComplexity": "single_leg",
+        "LegalRestRisk": "high",
+        "AlternateCrewAvailability": "none",
+        "BaseMatch": "different_base",
+        "DelayMinutes": "240"
+      }
+    },
+    {
+      "label": "cancel_flight",
+      "attributes": {
+        "DisruptionType": "cancel",
+        "FlightCriticality": "off_peak",
+        "DutyComplexity": "single_leg",
+        "LegalRestRisk": "*",
+        "AlternateCrewAvailability": "none",
+        "BaseMatch": "*",
+        "DelayMinutes": "*"
+      }
+    },
+    {
+      "label": "reassign_to_another_pairing",
+      "attributes": {
+        "DisruptionType": "cancel",
+        "FlightCriticality": "hub_wave",
+        "DutyComplexity": "multi_leg",
+        "LegalRestRisk": "*",
+        "AlternateCrewAvailability": "high",
+        "BaseMatch": "same_base",
+        "DelayMinutes": "*"
+      }
+    },
+    {
+      "label": "reassign_to_another_pairing",
+      "attributes": {
+        "DisruptionType": "cancel",
+        "FlightCriticality": "last_bank",
+        "DutyComplexity": "multi_leg",
+        "LegalRestRisk": "*",
+        "AlternateCrewAvailability": "limited",
+        "BaseMatch": "same_base",
+        "DelayMinutes": "*"
+      }
+    },
+    {
+      "label": "break_pairing_use_reserve",
+      "attributes": {
+        "DisruptionType": "cancel",
+        "FlightCriticality": "last_bank",
+        "DutyComplexity": "multi_leg",
+        "LegalRestRisk": "*",
+        "AlternateCrewAvailability": "limited",
+        "BaseMatch": "different_base",
+        "DelayMinutes": "*"
+      }
+    },
+    {
+      "label": "break_pairing_use_reserve",
+      "attributes": {
+        "DisruptionType": "crew_no_show",
+        "FlightCriticality": "hub_wave",
+        "DutyComplexity": "single_leg",
+        "LegalRestRisk": "*",
+        "AlternateCrewAvailability": "high",
+        "BaseMatch": "*",
+        "DelayMinutes": "*"
+      }
+    },
+    {
+      "label": "cancel_flight",
+      "attributes": {
+        "DisruptionType": "crew_no_show",
+        "FlightCriticality": "off_peak",
+        "DutyComplexity": "single_leg",
+        "LegalRestRisk": "*",
+        "AlternateCrewAvailability": "none",
+        "BaseMatch": "different_base",
+        "DelayMinutes": "*"
+      }
+    },
+    {
+      "label": "deadhead_crew_to_position",
+      "attributes": {
+        "DisruptionType": "crew_no_show",
+        "FlightCriticality": "off_peak",
+        "DutyComplexity": "multi_leg",
+        "LegalRestRisk": "*",
+        "AlternateCrewAvailability": "limited",
+        "BaseMatch": "same_base",
+        "DelayMinutes": "*"
+      }
+    },
+    {
+      "label": "reassign_to_another_pairing",
+      "attributes": {
+        "DisruptionType": "crew_no_show",
+        "FlightCriticality": "off_peak",
+        "DutyComplexity": "multi_leg",
+        "LegalRestRisk": "*",
+        "AlternateCrewAvailability": "limited",
+        "BaseMatch": "different_base",
+        "DelayMinutes": "*"
+      }
+    }
+  ]
+}

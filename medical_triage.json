@@ -1,0 +1,305 @@
+{
+  "name": "MedicalTriageToyKB",
+  "description": "NON-CLINICAL toy medical triage knowledge base for demonstration only. Not for real-world medical use.",
+  "attributes": [
+    {
+      "name": "SymptomGroup",
+      "kind": "categorical",
+      "domain": [ "respiratory", "chest_pain", "headache", "abdominal_pain" ]
+    },
+    {
+      "name": "OnsetSpeed",
+      "kind": "categorical",
+      "domain": [ "sudden", "gradual" ]
+    },
+    {
+      "name": "FeverC",
+      "kind": "numeric"
+    },
+    {
+      "name": "PainSeverity",
+      "kind": "categorical",
+      "domain": [ "none", "mild", "moderate", "severe" ]
+    },
+    {
+      "name": "RedFlags",
+      "kind": "categorical",
+      "domain": [ "none", "some", "many" ]
+    },
+    {
+      "name": "AgeGroup",
+      "kind": "categorical",
+      "domain": [ "child", "adult", "elderly" ]
+    },
+    {
+      "name": "DurationHours",
+      "kind": "numeric"
+    }
+  ],
+  "examples": [
+    {
+      "label": "reassurance_self_care",
+      "attributes": {
+        "SymptomGroup": "respiratory",
+        "OnsetSpeed": "gradual",
+        "FeverC": "37.5",
+        "PainSeverity": "mild",
+        "RedFlags": "none",
+        "AgeGroup": "adult",
+        "DurationHours": "24"
+      }
+    },
+    {
+      "label": "reassurance_self_care",
+      "attributes": {
+        "SymptomGroup": "headache",
+        "OnsetSpeed": "gradual",
+        "FeverC": "36.8",
+        "PainSeverity": "mild",
+        "RedFlags": "none",
+        "AgeGroup": "adult",
+        "DurationHours": "12"
+      }
+    },
+    {
+      "label": "reassurance_self_care",
+      "attributes": {
+        "SymptomGroup": "abdominal_pain",
+        "OnsetSpeed": "gradual",
+        "FeverC": "37.0",
+        "PainSeverity": "mild",
+        "RedFlags": "none",
+        "AgeGroup": "adult",
+        "DurationHours": "6"
+      }
+    },
+    {
+      "label": "reassurance_self_care",
+      "attributes": {
+        "SymptomGroup": "respiratory",
+        "OnsetSpeed": "gradual",
+        "FeverC": "38.0",
+        "PainSeverity": "none",
+        "RedFlags": "none",
+        "AgeGroup": "child",
+        "DurationHours": "24"
+      }
+    },
+    {
+      "label": "see_gp_48h",
+      "attributes": {
+        "SymptomGroup": "respiratory",
+        "OnsetSpeed": "gradual",
+        "FeverC": "38.5",
+        "PainSeverity": "moderate",
+        "RedFlags": "none",
+        "AgeGroup": "adult",
+        "DurationHours": "48"
+      }
+    },
+    {
+      "label": "see_gp_48h",
+      "attributes": {
+        "SymptomGroup": "headache",
+        "OnsetSpeed": "gradual",
+        "FeverC": "37.8",
+        "PainSeverity": "moderate",
+        "RedFlags": "none",
+        "AgeGroup": "adult",
+        "DurationHours": "36"
+      }
+    },
+    {
+      "label": "see_gp_48h",
+      "attributes": {
+        "SymptomGroup": "abdominal_pain",
+        "OnsetSpeed": "gradual",
+        "FeverC": "38.0",
+        "PainSeverity": "moderate",
+        "RedFlags": "some",
+        "AgeGroup": "adult",
+        "DurationHours": "24"
+      }
+    },
+    {
+      "label": "see_gp_48h",
+      "attributes": {
+        "SymptomGroup": "respiratory",
+        "OnsetSpeed": "gradual",
+        "FeverC": "38.5",
+        "PainSeverity": "mild",
+        "RedFlags": "some",
+        "AgeGroup": "child",
+        "DurationHours": "24"
+      }
+    },
+    {
+      "label": "same_day_clinic",
+      "attributes": {
+        "SymptomGroup": "respiratory",
+        "OnsetSpeed": "gradual",
+        "FeverC": "39.0",
+        "PainSeverity": "moderate",
+        "RedFlags": "some",
+        "AgeGroup": "elderly",
+        "DurationHours": "24"
+      }
+    },
+    {
+      "label": "same_day_clinic",
+      "attributes": {
+        "SymptomGroup": "abdominal_pain",
+        "OnsetSpeed": "gradual",
+        "FeverC": "38.5",
+        "PainSeverity": "severe",
+        "RedFlags": "some",
+        "AgeGroup": "adult",
+        "DurationHours": "12"
+      }
+    },
+    {
+      "label": "same_day_clinic",
+      "attributes": {
+        "SymptomGroup": "headache",
+        "OnsetSpeed": "sudden",
+        "FeverC": "38.2",
+        "PainSeverity": "severe",
+        "RedFlags": "some",
+        "AgeGroup": "adult",
+        "DurationHours": "4"
+      }
+    },
+    {
+      "label": "same_day_clinic",
+      "attributes": {
+        "SymptomGroup": "respiratory",
+        "OnsetSpeed": "gradual",
+        "FeverC": "38.8",
+        "PainSeverity": "moderate",
+        "RedFlags": "none",
+        "AgeGroup": "child",
+        "DurationHours": "72"
+      }
+    },
+    {
+      "label": "emergency_services",
+      "attributes": {
+        "SymptomGroup": "chest_pain",
+        "OnsetSpeed": "sudden",
+        "FeverC": "37.0",
+        "PainSeverity": "severe",
+        "RedFlags": "many",
+        "AgeGroup": "adult",
+        "DurationHours": "1"
+      }
+    },
+    {
+      "label": "emergency_services",
+      "attributes": {
+        "SymptomGroup": "chest_pain",
+        "OnsetSpeed": "sudden",
+        "FeverC": "37.5",
+        "PainSeverity": "moderate",
+        "RedFlags": "many",
+        "AgeGroup": "elderly",
+        "DurationHours": "2"
+      }
+    },
+    {
+      "label": "emergency_services",
+      "attributes": {
+        "SymptomGroup": "headache",
+        "OnsetSpeed": "sudden",
+        "FeverC": "39.5",
+        "PainSeverity": "severe",
+        "RedFlags": "many",
+        "AgeGroup": "adult",
+        "DurationHours": "3"
+      }
+    },
+    {
+      "label": "emergency_services",
+      "attributes": {
+        "SymptomGroup": "abdominal_pain",
+        "OnsetSpeed": "sudden",
+        "FeverC": "39.0",
+        "PainSeverity": "severe",
+        "RedFlags": "many",
+        "AgeGroup": "child",
+        "DurationHours": "6"
+      }
+    },
+    {
+      "label": "same_day_clinic",
+      "attributes": {
+        "SymptomGroup": "chest_pain",
+        "OnsetSpeed": "gradual",
+        "FeverC": "37.0",
+        "PainSeverity": "mild",
+        "RedFlags": "some",
+        "AgeGroup": "adult",
+        "DurationHours": "12"
+      }
+    },
+    {
+      "label": "see_gp_48h",
+      "attributes": {
+        "SymptomGroup": "chest_pain",
+        "OnsetSpeed": "gradual",
+        "FeverC": "36.8",
+        "PainSeverity": "mild",
+        "RedFlags": "none",
+        "AgeGroup": "adult",
+        "DurationHours": "24"
+      }
+    },
+    {
+      "label": "reassurance_self_care",
+      "attributes": {
+        "SymptomGroup": "headache",
+        "OnsetSpeed": "gradual",
+        "FeverC": "37.2",
+        "PainSeverity": "mild",
+        "RedFlags": "none",
+        "AgeGroup": "child",
+        "DurationHours": "6"
+      }
+    },
+    {
+      "label": "emergency_services",
+      "attributes": {
+        "SymptomGroup": "respiratory",
+        "OnsetSpeed": "sudden",
+        "FeverC": "40.2",
+        "PainSeverity": "moderate",
+        "RedFlags": "many",
+        "AgeGroup": "elderly",
+        "DurationHours": "8"
+      }
+    },
+    {
+      "label": "same_day_clinic",
+      "attributes": {
+        "SymptomGroup": "respiratory",
+        "OnsetSpeed": "sudden",
+        "FeverC": "38.8",
+        "PainSeverity": "moderate",
+        "RedFlags": "some",
+        "AgeGroup": "adult",
+        "DurationHours": "10"
+      }
+    },
+    {
+      "label": "see_gp_48h",
+      "attributes": {
+        "SymptomGroup": "abdominal_pain",
+        "OnsetSpeed": "gradual",
+        "FeverC": "37.8",
+        "PainSeverity": "mild",
+        "RedFlags": "none",
+        "AgeGroup": "elderly",
+        "DurationHours": "24"
+      }
+    }
+  ]
+}
