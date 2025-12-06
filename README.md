@@ -56,6 +56,7 @@ exploration, and nostalgia tool.
 The code in this repository is provided under a very permissive, “take it and run with it” style license:
 
 Author: Bill Sithiro
+
 Email: sithiro@gmail.com
 
 ```
