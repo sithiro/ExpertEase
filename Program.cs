@@ -1,17 +1,190 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
 namespace ExpertEase
 {
-    // Attribute definition
-    public sealed class AttributeDef
-    {
-        public string Name { get; }
-        public IReadOnlyList<string> Domain { get; }
+	public static class Program
+	{
+		public static void Main()
+		{
+			// 1. Attribute definitions
+			var attributes = new List<AttributeDef>
+			{
+				new AttributeDef("Weather", new[] { "raining", "sunny" }),
+				new AttributeDef("Family",  new[] { "yes", "no"       }),
+				new AttributeDef("Car",     new[] { "yes", "no"       })
+			};
 
-        public AttributeDef(string name, IReadOnlyList<string> domain)
+			// 2. Training examples (with "*" wildcards in examples only)
+			var examples = new List<TrainingExample>
+			{
+				new TrainingExample(new Dictionary<string,string>
+				{
+					["Weather"] = "raining",
+					["Family"]  = "yes",
+					["Car"]     = "yes"
+				}, "museum"),
+
+				new TrainingExample(new Dictionary<string,string>
+				{
+					["Weather"] = "sunny",
+					["Family"]  = "yes",
+					["Car"]     = "yes"
+				}, "beach"),
+
+				new TrainingExample(new Dictionary<string,string>
+				{
+					["Weather"] = "*",
+					["Family"]  = "no",
+					["Car"]     = "yes"
+				}, "fishing"),
+
+				new TrainingExample(new Dictionary<string,string>
+				{
+					["Weather"] = "*",
+					["Family"]  = "*",
+					["Car"]     = "no"
+				}, "home"),
+			};
+
+			// 3. Train the tree
+			var root = C45Trainer.Train(examples, attributes);
+
+			// 4. Show rules
+			Console.WriteLine("=== Induced rules ===");
+			var rules = RuleExtractor.ExtractRules(root);
+			foreach (var r in rules)
+				Console.WriteLine(r);
+
+			Console.WriteLine();
+
+			// 5. Show tree
+			Console.WriteLine("=== Decision tree ===");
+			Console.WriteLine(RuleExtractor.FormatTree(root));
+
+			Console.WriteLine();
+
+			// 6. Some test classifications
+			var q1 = new Dictionary<string, string>
+			{
+				["Weather"] = "raining",
+				["Family"] = "yes",
+				["Car"] = "yes"
+			};
+
+			var q2 = new Dictionary<string, string>
+			{
+				["Weather"] = "sunny",
+				["Family"] = "no",
+				["Car"] = "yes"
+			};
+
+			var q3 = new Dictionary<string, string>
+			{
+				["Weather"] = "sunny",
+				["Family"] = "yes",
+				["Car"] = "no"
+			};
+
+			Console.WriteLine("=== Test queries ===");
+			PrintQueryResult(root, q1);
+			PrintQueryResult(root, q2);
+			PrintQueryResult(root, q3);
+
+			Console.WriteLine();
+
+			// 7. Interactive consult
+			Console.WriteLine("=== Interactive consultation ===");
+			Console.WriteLine("Type 'why' to ask why I'm asking a question.");
+			Console.WriteLine();
+
+			InteractiveConsult(root, attributes);
+
+			Console.WriteLine();
+			Console.WriteLine("Press ENTER to exit.");
+			Console.ReadLine();
+		}
+
+		private static void PrintQueryResult(TreeNode root, Dictionary<string, string> query)
+		{
+			string key = string.Join(", ", query.Select(kv => $"{kv.Key}={kv.Value}"));
+			var advice = C45Trainer.Classify(root, query);
+			Console.WriteLine($"{key} => {advice}");
+		}
+
+		// Console-only interactive consultation
+		private static void InteractiveConsult(TreeNode root, List<AttributeDef> attributes)
+		{
+			var answers = new Dictionary<string, string>();
+
+			string FormatAnswers() =>
+				answers.Count == 0
+					? "(none yet)"
+					: string.Join(", ", answers.Select(kv => $"{kv.Key}={kv.Value}"));
+
+			foreach (var attr in attributes)
+			{
+				while (true)
+				{
+					Console.Write($"{attr.Name}? ({string.Join("/", attr.Domain)}): ");
+					var raw = Console.ReadLine();
+					var input = raw?.Trim();
+
+					if (string.IsNullOrEmpty(input))
+					{
+						Console.WriteLine("Please enter a value or 'why'.");
+						continue;
+					}
+
+					if (string.Equals(input, "why", StringComparison.OrdinalIgnoreCase))
+					{
+						var whyText = C45Trainer.Why(root, attr, answers);
+
+						Console.WriteLine();
+						Console.WriteLine("--- WHY ---");
+						Console.WriteLine(whyText);
+						Console.WriteLine();
+
+						continue;
+					}
+
+					var match = attr.Domain
+						.FirstOrDefault(d =>
+							string.Equals(d, input, StringComparison.OrdinalIgnoreCase));
+
+					if (match == null)
+					{
+						Console.WriteLine("Invalid value, please choose one of: " +
+										  string.Join(", ", attr.Domain) +
+										  " or type 'why'.");
+						continue;
+					}
+
+					answers[attr.Name] = match;
+					break;
+				}
+			}
+
+			var advice = C45Trainer.Classify(root, answers);
+			var how = C45Trainer.How(root, answers);
+
+			Console.WriteLine();
+			Console.WriteLine("=== RESULT ===");
+			Console.WriteLine($"Advice: {advice}");
+			Console.WriteLine();
+			Console.WriteLine("--- HOW ---");
+			Console.WriteLine(how);
+		}
+	}
+	// Attribute definition
+	public sealed class AttributeDef
+	{
+		public string Name { get; }
+		public IReadOnlyList<string> Domain { get; }
+
+		public AttributeDef(string name, IReadOnlyList<string> domain)
         {
             Name = name;
             Domain = domain;
@@ -580,178 +753,5 @@ namespace ExpertEase
         }
     }
 
-    public static class Program
-    {
-        public static void Main()
-        {
-            // 1. Attribute definitions
-            var attributes = new List<AttributeDef>
-            {
-                new AttributeDef("Weather", new[] { "raining", "sunny" }),
-                new AttributeDef("Family",  new[] { "yes", "no"       }),
-                new AttributeDef("Car",     new[] { "yes", "no"       })
-            };
-
-            // 2. Training examples (with "*" wildcards in examples only)
-            var examples = new List<TrainingExample>
-            {
-                new TrainingExample(new Dictionary<string,string>
-                {
-                    ["Weather"] = "raining",
-                    ["Family"]  = "yes",
-                    ["Car"]     = "yes"
-                }, "museum"),
-
-                new TrainingExample(new Dictionary<string,string>
-                {
-                    ["Weather"] = "sunny",
-                    ["Family"]  = "yes",
-                    ["Car"]     = "yes"
-                }, "beach"),
-
-                new TrainingExample(new Dictionary<string,string>
-                {
-                    ["Weather"] = "*",
-                    ["Family"]  = "no",
-                    ["Car"]     = "yes"
-                }, "fishing"),
-
-                new TrainingExample(new Dictionary<string,string>
-                {
-                    ["Weather"] = "*",
-                    ["Family"]  = "*",
-                    ["Car"]     = "no"
-                }, "home"),
-            };
-
-            // 3. Train the tree
-            var root = C45Trainer.Train(examples, attributes);
-
-            // 4. Show rules
-            Console.WriteLine("=== Induced rules ===");
-            var rules = RuleExtractor.ExtractRules(root);
-            foreach (var r in rules)
-                Console.WriteLine(r);
-
-            Console.WriteLine();
-
-            // 5. Show tree
-            Console.WriteLine("=== Decision tree ===");
-            Console.WriteLine(RuleExtractor.FormatTree(root));
-
-            Console.WriteLine();
-
-            // 6. Some test classifications
-            var q1 = new Dictionary<string, string>
-            {
-                ["Weather"] = "raining",
-                ["Family"]  = "yes",
-                ["Car"]     = "yes"
-            };
-
-            var q2 = new Dictionary<string, string>
-            {
-                ["Weather"] = "sunny",
-                ["Family"]  = "no",
-                ["Car"]     = "yes"
-            };
-
-            var q3 = new Dictionary<string, string>
-            {
-                ["Weather"] = "sunny",
-                ["Family"]  = "yes",
-                ["Car"]     = "no"
-            };
-
-            Console.WriteLine("=== Test queries ===");
-            PrintQueryResult(root, q1);
-            PrintQueryResult(root, q2);
-            PrintQueryResult(root, q3);
-
-            Console.WriteLine();
-
-            // 7. Interactive consult
-            Console.WriteLine("=== Interactive consultation ===");
-            Console.WriteLine("Type 'why' to ask why I'm asking a question.");
-            Console.WriteLine();
-
-            InteractiveConsult(root, attributes);
-
-            Console.WriteLine();
-            Console.WriteLine("Press ENTER to exit.");
-            Console.ReadLine();
-        }
-
-        private static void PrintQueryResult(TreeNode root, Dictionary<string,string> query)
-        {
-            string key = string.Join(", ", query.Select(kv => $"{kv.Key}={kv.Value}"));
-            var advice = C45Trainer.Classify(root, query);
-            Console.WriteLine($"{key} => {advice}");
-        }
-
-        // Console-only interactive consultation
-        private static void InteractiveConsult(TreeNode root, List<AttributeDef> attributes)
-        {
-            var answers = new Dictionary<string, string>();
-
-            string FormatAnswers() =>
-                answers.Count == 0
-                    ? "(none yet)"
-                    : string.Join(", ", answers.Select(kv => $"{kv.Key}={kv.Value}"));
-
-            foreach (var attr in attributes)
-            {
-                while (true)
-                {
-                    Console.Write($"{attr.Name}? ({string.Join("/", attr.Domain)}): ");
-                    var raw = Console.ReadLine();
-                    var input = raw?.Trim();
-
-                    if (string.IsNullOrEmpty(input))
-                    {
-                        Console.WriteLine("Please enter a value or 'why'.");
-                        continue;
-                    }
-
-                    if (string.Equals(input, "why", StringComparison.OrdinalIgnoreCase))
-                    {
-                        var whyText = C45Trainer.Why(root, attr, answers);
-
-                        Console.WriteLine();
-                        Console.WriteLine("--- WHY ---");
-                        Console.WriteLine(whyText);
-                        Console.WriteLine();
-
-                        continue;
-                    }
-
-                    var match = attr.Domain
-                        .FirstOrDefault(d =>
-                            string.Equals(d, input, StringComparison.OrdinalIgnoreCase));
-
-                    if (match == null)
-                    {
-                        Console.WriteLine("Invalid value, please choose one of: " +
-                                          string.Join(", ", attr.Domain) +
-                                          " or type 'why'.");
-                        continue;
-                    }
-
-                    answers[attr.Name] = match;
-                    break;
-                }
-            }
-
-            var advice = C45Trainer.Classify(root, answers);
-            var how = C45Trainer.How(root, answers);
-
-            Console.WriteLine();
-            Console.WriteLine("=== RESULT ===");
-            Console.WriteLine($"Advice: {advice}");
-            Console.WriteLine();
-            Console.WriteLine("--- HOW ---");
-            Console.WriteLine(how);
-        }
-    }
 }
 

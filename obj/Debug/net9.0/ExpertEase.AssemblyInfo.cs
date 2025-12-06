@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ExpertEase")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ce9294442cea1ba5cbfee85827e50303646edd25")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+43b6069ce8a92dd281bc33764789fe6a5014bbaf")]
 [assembly: System.Reflection.AssemblyProductAttribute("ExpertEase")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ExpertEase")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
