@@ -6,6 +6,7 @@ using System.Text;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Globalization;
 
 namespace ExpertEase
 {
@@ -14,7 +15,7 @@ namespace ExpertEase
         public static void Main()
 		{
 			// 1. Load the attributes and examples
-			var (attributes, examples) = LoadExpertFromFile("sunday.expert.json");
+			var (attributes, examples) = LoadExpertFromFile("flightdisruption.expert.json");
 
 			// 2. Train the tree
 			var root = C45Trainer.Train(examples, attributes);
@@ -89,87 +90,145 @@ namespace ExpertEase
         }
 
         // Console-only interactive consultation
-        private static void InteractiveConsult(TreeNode root, List<AttributeDef> attributes)
-        {
-            var answers = new Dictionary<string,string>();
+		private static void InteractiveConsult(TreeNode root, List<AttributeDef> attributes)
+		{
+			if (root == null) throw new ArgumentNullException(nameof(root));
+			if (attributes == null) throw new ArgumentNullException(nameof(attributes));
 
-            string FormatAnswers() =>
-                answers.Count == 0
-                    ? "(none yet)"
-                    : string.Join(", ", answers.Select(kv => $"{kv.Key}={kv.Value}"));
+			Console.WriteLine();
+			Console.WriteLine("=== Interactive consultation ===");
+			Console.WriteLine("Type 'why' to ask why I'm asking a question.");
+			Console.WriteLine();
 
-            foreach (var attr in attributes)
-            {
-                while (true)
-                {
-                    string promptSuffix = attr.Kind == AttributeKind.Numeric
-                        ? "numeric"
-                        : string.Join("/", attr.Domain);
+			var answers = new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);
 
-                    Console.Write($"{attr.Name}? ({promptSuffix}): ");
-                    var raw = Console.ReadLine();
-                    var input = raw?.Trim();
+			// Walk down the learned tree
+			var current = root;
 
-                    if (string.IsNullOrEmpty(input))
-                    {
-                        Console.WriteLine("Please enter a value or 'why'.");
-                        continue;
-                    }
+			while (!current.IsLeaf)
+			{
+				if (current.AttributeName == null)
+					throw new InvalidOperationException("Non-leaf node without AttributeName.");
 
-                    if (string.Equals(input, "why", StringComparison.OrdinalIgnoreCase))
-                    {
-                        var whyText = C45Trainer.Why(root, attr, answers);
+				// Find the attribute definition for this node
+				var attrDef = attributes.FirstOrDefault(a =>
+					string.Equals(a.Name, current.AttributeName, StringComparison.OrdinalIgnoreCase));
 
-                        Console.WriteLine();
-                        Console.WriteLine("--- WHY ---");
-                        Console.WriteLine(whyText);
-                        Console.WriteLine();
+				// Fallback: if not defined in attributes, synthesize something
+				if (attrDef == null)
+				{
+					if (current.IsNumericSplit)
+					{
+						// numeric split but no explicit AttributeDef -> treat as numeric
+						attrDef = new AttributeDef(current.AttributeName);
+					}
+					else
+					{
+						// categorical split: use children keys as domain if available
+						var domain = current.Children?.Keys.ToList() ?? new List<string>();
+						attrDef = new AttributeDef(current.AttributeName, domain);
+					}
+				}
 
-                        continue;
-                    }
+				string promptSuffix = attrDef.Kind == AttributeKind.Numeric
+					? "numeric"
+					: string.Join("/", attrDef.Domain);
 
-                    if (attr.Kind == AttributeKind.Numeric)
-                    {
-                        if (!double.TryParse(input, NumberStyles.Float, CultureInfo.InvariantCulture, out var d))
-                        {
-                            Console.WriteLine("Invalid value, please enter a numeric value (e.g. 23.5) or type 'why'.");
-                            continue;
-                        }
+				while (true)
+				{
+					Console.Write($"{attrDef.Name}? ({promptSuffix}): ");
+					var raw = Console.ReadLine();
+					var input = raw?.Trim();
 
-                        // Store numeric as invariant string
-                        answers[attr.Name] = d.ToString(CultureInfo.InvariantCulture);
-                    }
-                    else
-                    {
-                        var match = attr.Domain
-                            .FirstOrDefault(d =>
-                                string.Equals(d, input, StringComparison.OrdinalIgnoreCase));
+					if (string.IsNullOrEmpty(input))
+					{
+						Console.WriteLine("Please enter a value or 'why'.");
+						continue;
+					}
 
-                        if (match == null)
-                        {
-                            Console.WriteLine("Invalid value, please choose one of: " +
-                                              string.Join(", ", attr.Domain) +
-                                              " or type 'why'.");
-                            continue;
-                        }
+					// WHY: ask why this question matters at this point
+					if (string.Equals(input, "why", StringComparison.OrdinalIgnoreCase))
+					{
+						var whyText = C45Trainer.Why(root, attrDef, answers);
 
-                        answers[attr.Name] = match;
-                    }
+						Console.WriteLine();
+						Console.WriteLine("--- WHY ---");
+						Console.WriteLine(whyText);
+						Console.WriteLine();
 
-                    break;
-                }
-            }
+						continue; // re-ask the same attribute
+					}
 
-            var advice = C45Trainer.Classify(root, answers);
-            var how = C45Trainer.How(root, answers);
+					// Numeric attribute
+					if (attrDef.Kind == AttributeKind.Numeric)
+					{
+						if (!double.TryParse(input, NumberStyles.Float, CultureInfo.InvariantCulture, out var d))
+						{
+							Console.WriteLine("Invalid value, please enter a numeric value (e.g. 23.5) or type 'why'.");
+							continue;
+						}
 
-            Console.WriteLine();
-            Console.WriteLine("=== RESULT ===");
-            Console.WriteLine($"Advice: {advice}");
-            Console.WriteLine();
-            Console.WriteLine("--- HOW ---");
-            Console.WriteLine(how);
-        }
+						// Store as invariant string
+						var canonical = d.ToString(CultureInfo.InvariantCulture);
+						answers[attrDef.Name] = canonical;
+
+						if (current.Threshold == null ||
+							current.LessOrEqualChild == null ||
+							current.GreaterChild == null)
+						{
+							throw new InvalidOperationException("Numeric split node not fully initialized.");
+						}
+
+						// Move down the correct branch
+						current = d <= current.Threshold.Value
+							? current.LessOrEqualChild
+							: current.GreaterChild;
+
+						break;
+					}
+					else
+					{
+						// Categorical attribute: validate against domain
+						var match = attrDef.Domain
+							.FirstOrDefault(v =>
+								string.Equals(v, input, StringComparison.OrdinalIgnoreCase));
+
+						if (match == null)
+						{
+							Console.WriteLine("Invalid value, please choose one of: " +
+											string.Join(", ", attrDef.Domain) +
+											" or type 'why'.");
+							continue;
+						}
+
+						answers[attrDef.Name] = match;
+
+						if (current.Children == null ||
+							!current.Children.TryGetValue(match, out var next))
+						{
+							throw new InvalidOperationException(
+								$"No branch in the tree for {attrDef.Name} = {match}.");
+						}
+
+						// Move down the categorical branch
+						current = next;
+						break;
+					}
+				}
+			}
+
+			// We are at a leaf
+			Console.WriteLine();
+			Console.WriteLine("=== RESULT ===");
+			Console.WriteLine($"Advice: {current.Label}");
+			Console.WriteLine();
+
+			// HOW explanation based on the answers actually used
+			var how = C45Trainer.How(root, answers);
+			Console.WriteLine("--- HOW ---");
+			Console.WriteLine(how);
+		}
+
     }
 
     public enum AttributeKind
@@ -489,83 +548,117 @@ namespace ExpertEase
             return node.Label;
         }
 
-        // HOW: explain path + leaf reason
-        public static string How(TreeNode root, IDictionary<string,string> input)
-        {
-            if (root == null) throw new ArgumentNullException(nameof(root));
-            if (input == null) throw new ArgumentNullException(nameof(input));
+		// HOW: explain path + leaf reason
+		public static string How(TreeNode root, IDictionary<string, string> input)
+		{
+			if (root == null) throw new ArgumentNullException(nameof(root));
+			if (input == null) throw new ArgumentNullException(nameof(input));
 
-            var sb = new StringBuilder();
-            sb.AppendLine("Classification path:");
+			var sb = new StringBuilder();
+			sb.AppendLine("Classification path:");
 
-            var node = root;
+			var node = root;
 
-            while (!node.IsLeaf)
-            {
-                if (node.AttributeName == null)
-                    throw new InvalidOperationException("Non-leaf node without AttributeName.");
+			// Track which attributes were actually tested along this path
+			var usedAttributes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-                if (node.IsNumericSplit)
-                {
-                    if (node.Threshold == null ||
-                        node.LessOrEqualChild == null ||
-                        node.GreaterChild == null)
-                    {
-                        throw new InvalidOperationException("Numeric split node not fully initialized.");
-                    }
+			while (!node.IsLeaf)
+			{
+				if (node.AttributeName == null)
+					throw new InvalidOperationException("Non-leaf node without AttributeName.");
 
-                    if (!input.TryGetValue(node.AttributeName, out var raw))
-                        throw new ArgumentException($"Missing attribute '{node.AttributeName}' in input.");
+				usedAttributes.Add(node.AttributeName);
 
-                    if (!double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out var v))
-                        throw new ArgumentException($"Attribute '{node.AttributeName}' must be numeric.");
+				if (node.IsNumericSplit)
+				{
+					if (node.Threshold == null ||
+						node.LessOrEqualChild == null ||
+						node.GreaterChild == null)
+					{
+						throw new InvalidOperationException("Numeric split node not fully initialized.");
+					}
 
-                    var branch = v <= node.Threshold.Value ? "<=" : ">";
-                    sb.AppendLine(
-                        $"- Tested {node.AttributeName}, your value was {v}, threshold is {node.Threshold.Value}, so I followed the branch {node.AttributeName} {branch} {node.Threshold.Value}.");
+					if (!input.TryGetValue(node.AttributeName, out var raw))
+						throw new ArgumentException($"Missing attribute '{node.AttributeName}' in input.");
 
-                    node = v <= node.Threshold.Value ? node.LessOrEqualChild : node.GreaterChild;
-                    continue;
-                }
+					if (!double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out var v))
+						throw new ArgumentException($"Attribute '{node.AttributeName}' must be numeric.");
 
-                if (node.Children == null)
-                    throw new InvalidOperationException("Non-leaf node without children.");
+					var branch = v <= node.Threshold.Value ? "<=" : ">";
+					sb.AppendLine(
+						$"- Tested {node.AttributeName}, your value was {v}, threshold is {node.Threshold.Value}, so I followed the branch {node.AttributeName} {branch} {node.Threshold.Value}.");
 
-                if (!input.TryGetValue(node.AttributeName, out var value))
-                    throw new ArgumentException($"Missing attribute '{node.AttributeName}' in input.");
+					node = v <= node.Threshold.Value ? node.LessOrEqualChild : node.GreaterChild;
+					continue;
+				}
 
-                if (!node.Children.TryGetValue(value, out var child))
-                    throw new ArgumentException(
-                        $"Unknown value '{value}' for attribute '{node.AttributeName}'.");
+				if (node.Children == null)
+					throw new InvalidOperationException("Non-leaf node without children.");
 
-                sb.AppendLine(
-                    $"- Tested {node.AttributeName}, your answer was '{value}', so I followed the branch {node.AttributeName} = {value}.");
+				if (!input.TryGetValue(node.AttributeName, out var value))
+					throw new ArgumentException($"Missing attribute '{node.AttributeName}' in input.");
 
-                node = child;
-            }
+				if (!node.Children.TryGetValue(value, out var child))
+					throw new ArgumentException(
+						$"Unknown value '{value}' for attribute '{node.AttributeName}'.");
 
-            sb.AppendLine();
-            sb.AppendLine($"I reached a leaf with Advice = {node.Label}.");
+				sb.AppendLine(
+					$"- Tested {node.AttributeName}, your answer was '{value}', so I followed the branch {node.AttributeName} = {value}.");
 
-            sb.AppendLine(node.Reason switch
-            {
-                LeafReason.Pure =>
-                    "This corresponds to a pure leaf: all training examples that reached this point had this same advice.",
-                LeafReason.NoAttributesLeft =>
-                    "This leaf exists because there were no more attributes to test, so I used the majority advice at this node.",
-                LeafReason.NoUsefulSplit =>
-                    "This leaf exists because no attribute could further reduce the uncertainty, so I used the majority advice at this node.",
-                LeafReason.MajorityOfNodeForMissingBranch =>
-                    "This leaf exists because there were no training examples for this branch, so I used the majority advice from the parent node.",
-                _ =>
-                    "This leaf exists based on the training examples that reached this point."
-            });
+				node = child;
+			}
 
-            return sb.ToString();
-        }
+			sb.AppendLine();
+			sb.AppendLine($"I reached a leaf with Advice = {node.Label}.");
 
-        // WHY: explain why asking about a specific attribute, given partial answers
-        public static string Why(
+			sb.AppendLine(node.Reason switch
+			{
+				LeafReason.Pure =>
+					"This corresponds to a pure leaf: all training examples that reached this point had this same advice.",
+				LeafReason.NoAttributesLeft =>
+					"This leaf exists because there were no more attributes to test, so I used the majority advice at this node.",
+				LeafReason.NoUsefulSplit =>
+					"This leaf exists because no attribute could further reduce the uncertainty, so I used the majority advice at this node.",
+				LeafReason.MajorityOfNodeForMissingBranch =>
+					"This leaf exists because there were no training examples for this branch, so I used the majority advice from the parent node.",
+				_ =>
+					"This leaf exists based on the training examples that reached this point."
+			});
+
+			// Now explain attributes that were asked but not used on this path
+			var unused = input.Keys
+				.Where(k => !usedAttributes.Contains(k))
+				.OrderBy(k => k)
+				.ToList();
+
+			if (unused.Count > 0)
+			{
+				sb.AppendLine();
+				sb.AppendLine("Attributes you provided that did not affect this particular decision:");
+
+				foreach (var attrName in unused)
+				{
+					bool usedSomewhere = AttributeUsedInTree(root, attrName);
+
+					if (!usedSomewhere)
+					{
+						sb.AppendLine(
+							$"- {attrName}: the learned tree never tests this attribute at all, given the current training examples.");
+					}
+					else
+					{
+						sb.AppendLine(
+							$"- {attrName}: this attribute can matter in other situations, but for your answers it was not needed because other attributes already determined the advice.");
+					}
+				}
+			}
+
+			return sb.ToString();
+		}
+
+
+		// WHY: explain why asking about a specific attribute, given partial answers
+		public static string Why(
             TreeNode root,
             AttributeDef attribute,
             IDictionary<string,string> knownAnswers)
@@ -954,6 +1047,33 @@ namespace ExpertEase
 				.Select(g => g.Key)
 				.First();
 		}
+
+		private static bool AttributeUsedInTree(TreeNode node, string attrName)
+		{
+			if (node == null) return false;
+
+			if (node.AttributeName != null &&
+				string.Equals(node.AttributeName, attrName, StringComparison.OrdinalIgnoreCase))
+				return true;
+
+			if (node.IsNumericSplit)
+			{
+				return (node.LessOrEqualChild != null && AttributeUsedInTree(node.LessOrEqualChild, attrName))
+					|| (node.GreaterChild != null && AttributeUsedInTree(node.GreaterChild, attrName));
+			}
+
+			if (node.Children != null)
+			{
+				foreach (var child in node.Children.Values)
+				{
+					if (AttributeUsedInTree(child, attrName))
+						return true;
+				}
+			}
+
+			return false;
+		}
+
 	}
 
 	// Rule extraction + tree formatting

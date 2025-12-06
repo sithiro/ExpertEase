@@ -1,0 +1,152 @@
+{
+  "name": "FlightDisruptionAdvisor",
+  "description": "Simplified expert knowledge base for handling common flight disruptions (delays, cancellations, misconnects).",
+  "attributes": [
+    {
+      "name": "DisruptionType",
+      "kind": "categorical",
+      "domain": [ "delay", "cancellation", "misconnect" ]
+    },
+    {
+      "name": "Cause",
+      "kind": "categorical",
+      "domain": [ "airline", "weather" ]
+    },
+    {
+      "name": "ConnectionType",
+      "kind": "categorical",
+      "domain": [ "origin", "connecting" ]
+    },
+    {
+      "name": "TimeOfDay",
+      "kind": "categorical",
+      "domain": [ "day", "night" ]
+    },
+    {
+      "name": "DelayMinutes",
+      "kind": "numeric"
+    }
+  ],
+  "examples": [
+    {
+      "label": "inform_only",
+      "attributes": {
+        "DisruptionType": "delay",
+        "Cause": "airline",
+        "ConnectionType": "origin",
+        "TimeOfDay": "day",
+        "DelayMinutes": "30"
+      }
+    },
+    {
+      "label": "inform_only",
+      "attributes": {
+        "DisruptionType": "delay",
+        "Cause": "weather",
+        "ConnectionType": "origin",
+        "TimeOfDay": "day",
+        "DelayMinutes": "45"
+      }
+    },
+    {
+      "label": "meal_voucher",
+      "attributes": {
+        "DisruptionType": "delay",
+        "Cause": "airline",
+        "ConnectionType": "origin",
+        "TimeOfDay": "day",
+        "DelayMinutes": "90"
+      }
+    },
+    {
+      "label": "meal_voucher",
+      "attributes": {
+        "DisruptionType": "delay",
+        "Cause": "airline",
+        "ConnectionType": "connecting",
+        "TimeOfDay": "day",
+        "DelayMinutes": "150"
+      }
+    },
+    {
+      "label": "reroute_same_day",
+      "attributes": {
+        "DisruptionType": "delay",
+        "Cause": "airline",
+        "ConnectionType": "origin",
+        "TimeOfDay": "day",
+        "DelayMinutes": "210"
+      }
+    },
+    {
+      "label": "hotel_and_meals",
+      "attributes": {
+        "DisruptionType": "delay",
+        "Cause": "airline",
+        "ConnectionType": "connecting",
+        "TimeOfDay": "night",
+        "DelayMinutes": "240"
+      }
+    },
+    {
+      "label": "reroute_same_day",
+      "attributes": {
+        "DisruptionType": "cancellation",
+        "Cause": "airline",
+        "ConnectionType": "origin",
+        "TimeOfDay": "day",
+        "DelayMinutes": "*"
+      }
+    },
+    {
+      "label": "hotel_and_meals",
+      "attributes": {
+        "DisruptionType": "cancellation",
+        "Cause": "airline",
+        "ConnectionType": "connecting",
+        "TimeOfDay": "night",
+        "DelayMinutes": "*"
+      }
+    },
+    {
+      "label": "reroute_weather",
+      "attributes": {
+        "DisruptionType": "delay",
+        "Cause": "weather",
+        "ConnectionType": "connecting",
+        "TimeOfDay": "day",
+        "DelayMinutes": "200"
+      }
+    },
+    {
+      "label": "reroute_weather",
+      "attributes": {
+        "DisruptionType": "cancellation",
+        "Cause": "weather",
+        "ConnectionType": "*",
+        "TimeOfDay": "night",
+        "DelayMinutes": "*"
+      }
+    },
+    {
+      "label": "reroute_same_day",
+      "attributes": {
+        "DisruptionType": "misconnect",
+        "Cause": "airline",
+        "ConnectionType": "connecting",
+        "TimeOfDay": "day",
+        "DelayMinutes": "60"
+      }
+    },
+    {
+      "label": "reroute_same_day",
+      "attributes": {
+        "DisruptionType": "misconnect",
+        "Cause": "airline",
+        "ConnectionType": "connecting",
+        "TimeOfDay": "night",
+        "DelayMinutes": "80"
+      }
+    }
+  ]
+}
