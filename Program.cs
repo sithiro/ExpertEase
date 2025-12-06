@@ -32,11 +32,7 @@ namespace ExpertEase
             Console.WriteLine("=== Decision tree ===");
             Console.WriteLine(RuleExtractor.FormatTree(root));                        
 
-            // 5. Interactive consult
-            Console.WriteLine("=== Interactive consultation ===");
-            Console.WriteLine("Type 'why' to ask why I'm asking a question.");
-            Console.WriteLine();
-
+            // 5. Interactive consult            
             InteractiveConsult(root, attributes);
 
             Console.WriteLine();
