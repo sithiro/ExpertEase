@@ -12,9 +12,9 @@ namespace ExpertEase
 			// 1. Attribute definitions
 			var attributes = new List<AttributeDef>
 			{
-				new AttributeDef("Weather", new[] { "raining", "sunny" }),
-				new AttributeDef("Family",  new[] { "yes", "no"       }),
-				new AttributeDef("Car",     new[] { "yes", "no"       })
+				new AttributeDef("Weather", new[] { "raining", "sunny", "cloudy" }),
+				new AttributeDef("Family",  new[] { "yes", "no"       			 }),
+				new AttributeDef("Car",     new[] { "yes", "no"       			 })
 			};
 
 			// 2. Training examples (with "*" wildcards in examples only)
