@@ -1,0 +1,353 @@
+{
+  "name": "StockEntryAdvisor",
+  "description": "Toy expert-style knowledge base capturing how a professional trader might decide whether to buy a stock. EDUCATIONAL ONLY – NOT REAL TRADING ADVICE.",
+  "attributes": [
+    {
+      "name": "MarketRegime",
+      "kind": "categorical",
+      "domain": [ "bull", "range", "bear" ]
+    },
+    {
+      "name": "TrendStrength",
+      "kind": "categorical",
+      "domain": [ "strong_up", "up", "sideways", "down", "strong_down" ]
+    },
+    {
+      "name": "RelativeVolume",
+      "kind": "numeric"
+    },
+    {
+      "name": "VolatilityATR",
+      "kind": "numeric"
+    },
+    {
+      "name": "EarningsProximity",
+      "kind": "categorical",
+      "domain": [ "today", "this_week", "next_week_plus", "no_date" ]
+    },
+    {
+      "name": "SupportDistancePct",
+      "kind": "numeric"
+    },
+    {
+      "name": "ResistanceDistancePct",
+      "kind": "numeric"
+    },
+    {
+      "name": "RiskRewardRatio",
+      "kind": "numeric"
+    },
+    {
+      "name": "GapDirection",
+      "kind": "categorical",
+      "domain": [ "gap_up", "gap_down", "no_gap" ]
+    },
+    {
+      "name": "SetupType",
+      "kind": "categorical",
+      "domain": [ "breakout", "pullback", "mean_revert", "none" ]
+    }
+  ],
+  "examples": [
+    {
+      "label": "buy_aggressive",
+      "attributes": {
+        "MarketRegime": "bull",
+        "TrendStrength": "strong_up",
+        "RelativeVolume": "2.5",
+        "VolatilityATR": "1.8",
+        "EarningsProximity": "next_week_plus",
+        "SupportDistancePct": "1.5",
+        "ResistanceDistancePct": "6.0",
+        "RiskRewardRatio": "3.5",
+        "GapDirection": "gap_up",
+        "SetupType": "breakout"
+      }
+    },
+    {
+      "label": "buy_aggressive",
+      "attributes": {
+        "MarketRegime": "bull",
+        "TrendStrength": "up",
+        "RelativeVolume": "2.0",
+        "VolatilityATR": "1.5",
+        "EarningsProximity": "no_date",
+        "SupportDistancePct": "2.0",
+        "ResistanceDistancePct": "7.0",
+        "RiskRewardRatio": "3.0",
+        "GapDirection": "no_gap",
+        "SetupType": "pullback"
+      }
+    },
+    {
+      "label": "buy_normal",
+      "attributes": {
+        "MarketRegime": "bull",
+        "TrendStrength": "up",
+        "RelativeVolume": "1.3",
+        "VolatilityATR": "1.2",
+        "EarningsProximity": "next_week_plus",
+        "SupportDistancePct": "3.0",
+        "ResistanceDistancePct": "5.0",
+        "RiskRewardRatio": "2.0",
+        "GapDirection": "no_gap",
+        "SetupType": "pullback"
+      }
+    },
+    {
+      "label": "buy_normal",
+      "attributes": {
+        "MarketRegime": "range",
+        "TrendStrength": "sideways",
+        "RelativeVolume": "1.4",
+        "VolatilityATR": "1.0",
+        "EarningsProximity": "no_date",
+        "SupportDistancePct": "1.0",
+        "ResistanceDistancePct": "4.0",
+        "RiskRewardRatio": "2.3",
+        "GapDirection": "no_gap",
+        "SetupType": "mean_revert"
+      }
+    },
+    {
+      "label": "hold",
+      "attributes": {
+        "MarketRegime": "bull",
+        "TrendStrength": "strong_up",
+        "RelativeVolume": "0.9",
+        "VolatilityATR": "1.7",
+        "EarningsProximity": "this_week",
+        "SupportDistancePct": "4.0",
+        "ResistanceDistancePct": "2.5",
+        "RiskRewardRatio": "1.2",
+        "GapDirection": "no_gap",
+        "SetupType": "none"
+      }
+    },
+    {
+      "label": "hold",
+      "attributes": {
+        "MarketRegime": "range",
+        "TrendStrength": "sideways",
+        "RelativeVolume": "1.0",
+        "VolatilityATR": "0.9",
+        "EarningsProximity": "next_week_plus",
+        "SupportDistancePct": "2.0",
+        "ResistanceDistancePct": "2.5",
+        "RiskRewardRatio": "1.5",
+        "GapDirection": "no_gap",
+        "SetupType": "none"
+      }
+    },
+    {
+      "label": "avoid",
+      "attributes": {
+        "MarketRegime": "bear",
+        "TrendStrength": "strong_down",
+        "RelativeVolume": "2.2",
+        "VolatilityATR": "3.0",
+        "EarningsProximity": "today",
+        "SupportDistancePct": "6.0",
+        "ResistanceDistancePct": "0.8",
+        "RiskRewardRatio": "0.7",
+        "GapDirection": "gap_down",
+        "SetupType": "breakout"
+      }
+    },
+    {
+      "label": "avoid",
+      "attributes": {
+        "MarketRegime": "bear",
+        "TrendStrength": "down",
+        "RelativeVolume": "1.6",
+        "VolatilityATR": "2.5",
+        "EarningsProximity": "this_week",
+        "SupportDistancePct": "4.0",
+        "ResistanceDistancePct": "1.0",
+        "RiskRewardRatio": "0.9",
+        "GapDirection": "gap_up",
+        "SetupType": "pullback"
+      }
+    },
+    {
+      "label": "avoid",
+      "attributes": {
+        "MarketRegime": "bear",
+        "TrendStrength": "down",
+        "RelativeVolume": "0.8",
+        "VolatilityATR": "1.8",
+        "EarningsProximity": "today",
+        "SupportDistancePct": "3.5",
+        "ResistanceDistancePct": "1.2",
+        "RiskRewardRatio": "1.0",
+        "GapDirection": "no_gap",
+        "SetupType": "none"
+      }
+    },
+    {
+      "label": "avoid",
+      "attributes": {
+        "MarketRegime": "range",
+        "TrendStrength": "sideways",
+        "RelativeVolume": "0.7",
+        "VolatilityATR": "0.6",
+        "EarningsProximity": "this_week",
+        "SupportDistancePct": "5.0",
+        "ResistanceDistancePct": "1.0",
+        "RiskRewardRatio": "1.0",
+        "GapDirection": "no_gap",
+        "SetupType": "breakout"
+      }
+    },
+    {
+      "label": "take_partial_profits",
+      "attributes": {
+        "MarketRegime": "bull",
+        "TrendStrength": "strong_up",
+        "RelativeVolume": "1.8",
+        "VolatilityATR": "2.2",
+        "EarningsProximity": "this_week",
+        "SupportDistancePct": "7.0",
+        "ResistanceDistancePct": "0.8",
+        "RiskRewardRatio": "4.0",
+        "GapDirection": "gap_up",
+        "SetupType": "breakout"
+      }
+    },
+    {
+      "label": "take_partial_profits",
+      "attributes": {
+        "MarketRegime": "bull",
+        "TrendStrength": "up",
+        "RelativeVolume": "1.5",
+        "VolatilityATR": "1.9",
+        "EarningsProximity": "today",
+        "SupportDistancePct": "5.0",
+        "ResistanceDistancePct": "1.0",
+        "RiskRewardRatio": "3.2",
+        "GapDirection": "gap_up",
+        "SetupType": "pullback"
+      }
+    },
+    {
+      "label": "buy_aggressive",
+      "attributes": {
+        "MarketRegime": "bull",
+        "TrendStrength": "strong_up",
+        "RelativeVolume": "3.0",
+        "VolatilityATR": "2.0",
+        "EarningsProximity": "next_week_plus",
+        "SupportDistancePct": "1.0",
+        "ResistanceDistancePct": "8.0",
+        "RiskRewardRatio": "4.5",
+        "GapDirection": "no_gap",
+        "SetupType": "breakout"
+      }
+    },
+    {
+      "label": "buy_normal",
+      "attributes": {
+        "MarketRegime": "range",
+        "TrendStrength": "up",
+        "RelativeVolume": "1.2",
+        "VolatilityATR": "1.1",
+        "EarningsProximity": "no_date",
+        "SupportDistancePct": "1.2",
+        "ResistanceDistancePct": "3.0",
+        "RiskRewardRatio": "2.1",
+        "GapDirection": "no_gap",
+        "SetupType": "mean_revert"
+      }
+    },
+    {
+      "label": "avoid",
+      "attributes": {
+        "MarketRegime": "bear",
+        "TrendStrength": "strong_down",
+        "RelativeVolume": "2.7",
+        "VolatilityATR": "3.5",
+        "EarningsProximity": "today",
+        "SupportDistancePct": "8.0",
+        "ResistanceDistancePct": "0.5",
+        "RiskRewardRatio": "0.6",
+        "GapDirection": "gap_down",
+        "SetupType": "mean_revert"
+      }
+    },
+    {
+      "label": "hold",
+      "attributes": {
+        "MarketRegime": "bull",
+        "TrendStrength": "up",
+        "RelativeVolume": "1.0",
+        "VolatilityATR": "1.4",
+        "EarningsProximity": "this_week",
+        "SupportDistancePct": "3.0",
+        "ResistanceDistancePct": "2.0",
+        "RiskRewardRatio": "1.8",
+        "GapDirection": "no_gap",
+        "SetupType": "none"
+      }
+    },
+    {
+      "label": "buy_normal",
+      "attributes": {
+        "MarketRegime": "bull",
+        "TrendStrength": "up",
+        "RelativeVolume": "1.6",
+        "VolatilityATR": "1.6",
+        "EarningsProximity": "next_week_plus",
+        "SupportDistancePct": "2.5",
+        "ResistanceDistancePct": "6.0",
+        "RiskRewardRatio": "2.7",
+        "GapDirection": "no_gap",
+        "SetupType": "pullback"
+      }
+    },
+    {
+      "label": "avoid",
+      "attributes": {
+        "MarketRegime": "range",
+        "TrendStrength": "sideways",
+        "RelativeVolume": "1.1",
+        "VolatilityATR": "2.5",
+        "EarningsProximity": "this_week",
+        "SupportDistancePct": "2.0",
+        "ResistanceDistancePct": "2.5",
+        "RiskRewardRatio": "1.3",
+        "GapDirection": "gap_up",
+        "SetupType": "breakout"
+      }
+    },
+    {
+      "label": "buy_aggressive",
+      "attributes": {
+        "MarketRegime": "bull",
+        "TrendStrength": "strong_up",
+        "RelativeVolume": "2.2",
+        "VolatilityATR": "1.9",
+        "EarningsProximity": "no_date",
+        "SupportDistancePct": "1.8",
+        "ResistanceDistancePct": "7.5",
+        "RiskRewardRatio": "3.8",
+        "GapDirection": "no_gap",
+        "SetupType": "breakout"
+      }
+    },
+    {
+      "label": "avoid",
+      "attributes": {
+        "MarketRegime": "bear",
+        "TrendStrength": "down",
+        "RelativeVolume": "1.3",
+        "VolatilityATR": "2.0",
+        "EarningsProximity": "this_week",
+        "SupportDistancePct": "4.5",
+        "ResistanceDistancePct": "1.5",
+        "RiskRewardRatio": "1.1",
+        "GapDirection": "gap_down",
+        "SetupType": "pullback"
+      }
+    }
+  ]
+}

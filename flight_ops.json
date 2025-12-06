@@ -1,0 +1,373 @@
+{
+  "name": "FlightOpsTurnaroundAdvisor",
+  "description": "Complex toy knowledge base for flight operations / turnaround decisions. Uses both discrete and numeric attributes. NOT for real-world operational use.",
+  "attributes": [
+    {
+      "name": "DisruptionType",
+      "kind": "categorical",
+      "domain": [ "normal", "delay", "cancel", "swap_required" ]
+    },
+    {
+      "name": "Phase",
+      "kind": "categorical",
+      "domain": [ "pre_departure", "enroute", "arrival_turn" ]
+    },
+    {
+      "name": "AirportCategory",
+      "kind": "categorical",
+      "domain": [ "hub", "focus", "outstation" ]
+    },
+    {
+      "name": "SlotConstraint",
+      "kind": "categorical",
+      "domain": [ "none", "soft", "hard" ]
+    },
+    {
+      "name": "CrewConnectionRisk",
+      "kind": "categorical",
+      "domain": [ "low", "medium", "high" ]
+    },
+    {
+      "name": "PassengerConnectionLoad",
+      "kind": "categorical",
+      "domain": [ "low", "medium", "high" ]
+    },
+    {
+      "name": "MaintenanceStatus",
+      "kind": "categorical",
+      "domain": [ "none", "due_today", "overdue" ]
+    },
+    {
+      "name": "DelayMinutes",
+      "kind": "numeric"
+    },
+    {
+      "name": "RemainingTurnMinutes",
+      "kind": "numeric"
+    }
+  ],
+  "examples": [
+    {
+      "label": "operate_as_planned",
+      "attributes": {
+        "DisruptionType": "normal",
+        "Phase": "pre_departure",
+        "AirportCategory": "hub",
+        "SlotConstraint": "none",
+        "CrewConnectionRisk": "low",
+        "PassengerConnectionLoad": "low",
+        "MaintenanceStatus": "none",
+        "DelayMinutes": "0",
+        "RemainingTurnMinutes": "60"
+      }
+    },
+    {
+      "label": "operate_as_planned",
+      "attributes": {
+        "DisruptionType": "normal",
+        "Phase": "arrival_turn",
+        "AirportCategory": "outstation",
+        "SlotConstraint": "none",
+        "CrewConnectionRisk": "low",
+        "PassengerConnectionLoad": "medium",
+        "MaintenanceStatus": "none",
+        "DelayMinutes": "5",
+        "RemainingTurnMinutes": "45"
+      }
+    },
+    {
+      "label": "absorb_delay_no_actions",
+      "attributes": {
+        "DisruptionType": "delay",
+        "Phase": "pre_departure",
+        "AirportCategory": "hub",
+        "SlotConstraint": "none",
+        "CrewConnectionRisk": "low",
+        "PassengerConnectionLoad": "low",
+        "MaintenanceStatus": "none",
+        "DelayMinutes": "15",
+        "RemainingTurnMinutes": "50"
+      }
+    },
+    {
+      "label": "absorb_delay_no_actions",
+      "attributes": {
+        "DisruptionType": "delay",
+        "Phase": "arrival_turn",
+        "AirportCategory": "outstation",
+        "SlotConstraint": "none",
+        "CrewConnectionRisk": "low",
+        "PassengerConnectionLoad": "low",
+        "MaintenanceStatus": "none",
+        "DelayMinutes": "20",
+        "RemainingTurnMinutes": "40"
+      }
+    },
+    {
+      "label": "short_turn_minimum_services",
+      "attributes": {
+        "DisruptionType": "delay",
+        "Phase": "arrival_turn",
+        "AirportCategory": "outstation",
+        "SlotConstraint": "none",
+        "CrewConnectionRisk": "medium",
+        "PassengerConnectionLoad": "medium",
+        "MaintenanceStatus": "none",
+        "DelayMinutes": "35",
+        "RemainingTurnMinutes": "25"
+      }
+    },
+    {
+      "label": "short_turn_minimum_services",
+      "attributes": {
+        "DisruptionType": "delay",
+        "Phase": "arrival_turn",
+        "AirportCategory": "focus",
+        "SlotConstraint": "soft",
+        "CrewConnectionRisk": "medium",
+        "PassengerConnectionLoad": "high",
+        "MaintenanceStatus": "none",
+        "DelayMinutes": "40",
+        "RemainingTurnMinutes": "20"
+      }
+    },
+    {
+      "label": "prioritize_connections",
+      "attributes": {
+        "DisruptionType": "delay",
+        "Phase": "arrival_turn",
+        "AirportCategory": "hub",
+        "SlotConstraint": "none",
+        "CrewConnectionRisk": "high",
+        "PassengerConnectionLoad": "high",
+        "MaintenanceStatus": "none",
+        "DelayMinutes": "30",
+        "RemainingTurnMinutes": "35"
+      }
+    },
+    {
+      "label": "prioritize_connections",
+      "attributes": {
+        "DisruptionType": "delay",
+        "Phase": "arrival_turn",
+        "AirportCategory": "hub",
+        "SlotConstraint": "soft",
+        "CrewConnectionRisk": "high",
+        "PassengerConnectionLoad": "high",
+        "MaintenanceStatus": "none",
+        "DelayMinutes": "25",
+        "RemainingTurnMinutes": "30"
+      }
+    },
+    {
+      "label": "request_slot_extension",
+      "attributes": {
+        "DisruptionType": "delay",
+        "Phase": "pre_departure",
+        "AirportCategory": "hub",
+        "SlotConstraint": "hard",
+        "CrewConnectionRisk": "medium",
+        "PassengerConnectionLoad": "high",
+        "MaintenanceStatus": "none",
+        "DelayMinutes": "45",
+        "RemainingTurnMinutes": "35"
+      }
+    },
+    {
+      "label": "request_slot_extension",
+      "attributes": {
+        "DisruptionType": "delay",
+        "Phase": "pre_departure",
+        "AirportCategory": "focus",
+        "SlotConstraint": "hard",
+        "CrewConnectionRisk": "medium",
+        "PassengerConnectionLoad": "medium",
+        "MaintenanceStatus": "none",
+        "DelayMinutes": "55",
+        "RemainingTurnMinutes": "25"
+      }
+    },
+    {
+      "label": "swap_aircraft_same_type",
+      "attributes": {
+        "DisruptionType": "swap_required",
+        "Phase": "pre_departure",
+        "AirportCategory": "hub",
+        "SlotConstraint": "soft",
+        "CrewConnectionRisk": "medium",
+        "PassengerConnectionLoad": "high",
+        "MaintenanceStatus": "due_today",
+        "DelayMinutes": "30",
+        "RemainingTurnMinutes": "40"
+      }
+    },
+    {
+      "label": "swap_aircraft_same_type",
+      "attributes": {
+        "DisruptionType": "swap_required",
+        "Phase": "arrival_turn",
+        "AirportCategory": "hub",
+        "SlotConstraint": "soft",
+        "CrewConnectionRisk": "high",
+        "PassengerConnectionLoad": "high",
+        "MaintenanceStatus": "due_today",
+        "DelayMinutes": "35",
+        "RemainingTurnMinutes": "30"
+      }
+    },
+    {
+      "label": "swap_aircraft_smaller_type",
+      "attributes": {
+        "DisruptionType": "swap_required",
+        "Phase": "pre_departure",
+        "AirportCategory": "focus",
+        "SlotConstraint": "hard",
+        "CrewConnectionRisk": "medium",
+        "PassengerConnectionLoad": "low",
+        "MaintenanceStatus": "overdue",
+        "DelayMinutes": "60",
+        "RemainingTurnMinutes": "30"
+      }
+    },
+    {
+      "label": "swap_aircraft_smaller_type",
+      "attributes": {
+        "DisruptionType": "swap_required",
+        "Phase": "pre_departure",
+        "AirportCategory": "outstation",
+        "SlotConstraint": "soft",
+        "CrewConnectionRisk": "low",
+        "PassengerConnectionLoad": "low",
+        "MaintenanceStatus": "overdue",
+        "DelayMinutes": "50",
+        "RemainingTurnMinutes": "35"
+      }
+    },
+    {
+      "label": "cancel_flight_protect_wave",
+      "attributes": {
+        "DisruptionType": "cancel",
+        "Phase": "pre_departure",
+        "AirportCategory": "hub",
+        "SlotConstraint": "hard",
+        "CrewConnectionRisk": "high",
+        "PassengerConnectionLoad": "high",
+        "MaintenanceStatus": "overdue",
+        "DelayMinutes": "*",
+        "RemainingTurnMinutes": "*"
+      }
+    },
+    {
+      "label": "cancel_flight_protect_wave",
+      "attributes": {
+        "DisruptionType": "cancel",
+        "Phase": "arrival_turn",
+        "AirportCategory": "hub",
+        "SlotConstraint": "hard",
+        "CrewConnectionRisk": "high",
+        "PassengerConnectionLoad": "medium",
+        "MaintenanceStatus": "due_today",
+        "DelayMinutes": "*",
+        "RemainingTurnMinutes": "*"
+      }
+    },
+    {
+      "label": "preserve_crew_legalities",
+      "attributes": {
+        "DisruptionType": "delay",
+        "Phase": "enroute",
+        "AirportCategory": "hub",
+        "SlotConstraint": "none",
+        "CrewConnectionRisk": "high",
+        "PassengerConnectionLoad": "medium",
+        "MaintenanceStatus": "none",
+        "DelayMinutes": "70",
+        "RemainingTurnMinutes": "20"
+      }
+    },
+    {
+      "label": "preserve_crew_legalities",
+      "attributes": {
+        "DisruptionType": "delay",
+        "Phase": "enroute",
+        "AirportCategory": "focus",
+        "SlotConstraint": "soft",
+        "CrewConnectionRisk": "high",
+        "PassengerConnectionLoad": "high",
+        "MaintenanceStatus": "none",
+        "DelayMinutes": "80",
+        "RemainingTurnMinutes": "15"
+      }
+    },
+    {
+      "label": "short_turn_minimum_services",
+      "attributes": {
+        "DisruptionType": "delay",
+        "Phase": "arrival_turn",
+        "AirportCategory": "outstation",
+        "SlotConstraint": "none",
+        "CrewConnectionRisk": "medium",
+        "PassengerConnectionLoad": "high",
+        "MaintenanceStatus": "due_today",
+        "DelayMinutes": "45",
+        "RemainingTurnMinutes": "20"
+      }
+    },
+    {
+      "label": "operate_as_planned",
+      "attributes": {
+        "DisruptionType": "normal",
+        "Phase": "arrival_turn",
+        "AirportCategory": "focus",
+        "SlotConstraint": "none",
+        "CrewConnectionRisk": "medium",
+        "PassengerConnectionLoad": "high",
+        "MaintenanceStatus": "due_today",
+        "DelayMinutes": "0",
+        "RemainingTurnMinutes": "55"
+      }
+    },
+    {
+      "label": "absorb_delay_no_actions",
+      "attributes": {
+        "DisruptionType": "delay",
+        "Phase": "pre_departure",
+        "AirportCategory": "outstation",
+        "SlotConstraint": "none",
+        "CrewConnectionRisk": "low",
+        "PassengerConnectionLoad": "medium",
+        "MaintenanceStatus": "none",
+        "DelayMinutes": "10",
+        "RemainingTurnMinutes": "45"
+      }
+    },
+    {
+      "label": "request_slot_extension",
+      "attributes": {
+        "DisruptionType": "delay",
+        "Phase": "pre_departure",
+        "AirportCategory": "hub",
+        "SlotConstraint": "hard",
+        "CrewConnectionRisk": "high",
+        "PassengerConnectionLoad": "high",
+        "MaintenanceStatus": "due_today",
+        "DelayMinutes": "65",
+        "RemainingTurnMinutes": "25"
+      }
+    },
+    {
+      "label": "cancel_flight_protect_wave",
+      "attributes": {
+        "DisruptionType": "delay",
+        "Phase": "pre_departure",
+        "AirportCategory": "hub",
+        "SlotConstraint": "hard",
+        "CrewConnectionRisk": "high",
+        "PassengerConnectionLoad": "high",
+        "MaintenanceStatus": "overdue",
+        "DelayMinutes": "120",
+        "RemainingTurnMinutes": "10"
+      }
+    }
+  ]
+}
