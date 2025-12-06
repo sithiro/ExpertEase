@@ -9,8 +9,6 @@ Instead of opaque ML models, ExpertEase:
 - lets you **consult** it interactively (with a `why` command),
 - and explains its decisions with a human-readable **HOW** trace and extracted rules.
 
----
-
 ## Status
 
 This is a minimal but working MVP:
@@ -30,8 +28,6 @@ This is a minimal but working MVP:
 - Rule extraction + ASCII tree visualization.
 
 No pruning or advanced handling of missing values yet (by design – this is meant to be small and understandable).
-
----
 
 ## Design notes
 
@@ -55,5 +51,21 @@ No pruning or advanced handling of missing values yet (by design – this is mea
 This is intentionally not optimized for large data sets; it’s meant as a teaching,
 exploration, and nostalgia tool.
 
+## License & author
 
+The code in this repository is provided under a very permissive, “take it and run with it” style license:
 
+Author: Bill Sithiro
+Email: sithiro@gmail.com
+```
+Permission is hereby granted to use, copy, modify, and distribute this software
+and its documentation for any purpose, free of charge, provided that this notice
+is retained in any substantial portions of the software.
+
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+```
