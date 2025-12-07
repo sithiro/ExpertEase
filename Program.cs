@@ -12,34 +12,55 @@ namespace ExpertEase
 {
     public static class Program
     {
-        public static void Main()
+         public static void Main(string[] args)
 		{
-			// 1. Load the attributes and examples
-			var (attributes, examples) = LoadExpertFromFile("incident_severity.json");
+			
+			// 1. Decide which knowledge base file to use
+			string kbPath;
 
-			// 2. Train the tree
+			if (args.Length >= 1 && !string.IsNullOrWhiteSpace(args[0]))
+			{
+				kbPath = args[0];
+			}
+			else
+			{
+				// Fallback default if nothing is passed
+				kbPath = "sunday.json";
+			}
+
+			Console.WriteLine($"Loading knowledge base from: {kbPath}");
+
+			if (!File.Exists(kbPath))
+			{
+				Console.WriteLine($"Error: file '{kbPath}' not found.");
+				Console.WriteLine("Make sure the .expert.json file is in the current directory");
+				Console.WriteLine("or pass an absolute/relative path, e.g.:");
+				Console.WriteLine("  dotnet run -- sunday.expert.json");
+				return;
+			}
+
+			// 2. Load attributes + examples from the chosen file
+			var (attributes, examples) = LoadExpertFromFile(kbPath);
+
+			// 3. Train the tree
 			var root = C45Trainer.Train(examples, attributes);
 
-            // 3. Show rules
-            Console.WriteLine("=== Induced rules ===");
-            var rules = RuleExtractor.ExtractRules(root);
-            foreach (var r in rules)
-                Console.WriteLine(r);
+			// 4. Show rules and tree (whatever you already have)
+			var rules = RuleExtractor.ExtractRules(root);
+			Console.WriteLine("=== Induced rules ===");
+			foreach (var rule in rules)
+			{
+				Console.WriteLine(rule);
+			}
 
-            Console.WriteLine();
+			Console.WriteLine();
+			Console.WriteLine("=== Decision tree ===");
+			Console.WriteLine(RuleExtractor.FormatTree(root));
 
-            // 4. Show tree
-            Console.WriteLine("=== Decision tree ===");
-            Console.WriteLine(RuleExtractor.FormatTree(root));                        
-
-            // 5. Interactive consult            
-            InteractiveConsult(root, attributes);
-
-            Console.WriteLine();
-            Console.WriteLine("Press ENTER to exit.");
-            Console.ReadLine();
-        }
-
+			// 5. Interactive consultation (same as before)
+			InteractiveConsult(root, attributes);
+		}
+		
 		static (List<AttributeDef> attrs, List<TrainingExample> examples) LoadExpertFromFile(string path)
 		{
 			var json = File.ReadAllText(path);

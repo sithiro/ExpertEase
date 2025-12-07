@@ -51,6 +51,25 @@ No pruning or advanced handling of missing values yet (by design – this is mea
 This is intentionally not optimized for large data sets; it’s meant as a teaching,
 exploration, and nostalgia tool.
 
+## Running
+
+Build the project:
+
+```bash
+dotnet build
+
+Run with the default knowledge base
+
+dotnet run
+
+dotnet run -- flight_ops.json
+dotnet run -- flight_disruption.json
+dotnet run -- crew_disruption.json
+dotnet run -- incident_severity.json
+dotnet run -- medical_triage.json
+dotnet run -- stock_entry.json
+
+
 ## License & author
 
 The code in this repository is provided under a very permissive, “take it and run with it” style license:
