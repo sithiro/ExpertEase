@@ -1,0 +1,331 @@
+{
+  "name": "IncidentSeverityAdvisor",
+  "description": "GoFAI-style knowledge base to classify production incidents into severity levels and recommended responses. Non-authoritative template for SRE/DevOps teams.",
+  "attributes": [
+    {
+      "name": "BusinessImpact",
+      "kind": "categorical",
+      "domain": [ "none", "minor", "moderate", "major", "critical" ]
+    },
+    {
+      "name": "SystemType",
+      "kind": "categorical",
+      "domain": [ "customer_facing", "internal_critical", "internal_noncritical", "batch" ]
+    },
+    {
+      "name": "AffectedUsersPct",
+      "kind": "numeric"
+    },
+    {
+      "name": "RevenueImpact",
+      "kind": "categorical",
+      "domain": [ "none", "low", "medium", "high" ]
+    },
+    {
+      "name": "DataLoss",
+      "kind": "categorical",
+      "domain": [ "none", "temporary", "permanent" ]
+    },
+    {
+      "name": "SecuritySuspected",
+      "kind": "categorical",
+      "domain": [ "no", "possible", "confirmed" ]
+    },
+    {
+      "name": "WorkaroundAvailable",
+      "kind": "categorical",
+      "domain": [ "yes", "partial", "no" ]
+    },
+    {
+      "name": "SLAviolationRisk",
+      "kind": "categorical",
+      "domain": [ "low", "medium", "high" ]
+    },
+    {
+      "name": "IncidentDurationMinutes",
+      "kind": "numeric"
+    },
+    {
+      "name": "TimeOfDay",
+      "kind": "categorical",
+      "domain": [ "business_hours", "off_hours", "weekend" ]
+    }
+  ],
+  "examples": [
+    {
+      "label": "sev0_security_incident",
+      "attributes": {
+        "BusinessImpact": "*",
+        "SystemType": "*",
+        "AffectedUsersPct": "*",
+        "RevenueImpact": "*",
+        "DataLoss": "*",
+        "SecuritySuspected": "confirmed",
+        "WorkaroundAvailable": "*",
+        "SLAviolationRisk": "*",
+        "IncidentDurationMinutes": "*",
+        "TimeOfDay": "*"
+      }
+    },
+    {
+      "label": "sev0_security_incident",
+      "attributes": {
+        "BusinessImpact": "major",
+        "SystemType": "customer_facing",
+        "AffectedUsersPct": "60",
+        "RevenueImpact": "high",
+        "DataLoss": "permanent",
+        "SecuritySuspected": "possible",
+        "WorkaroundAvailable": "no",
+        "SLAviolationRisk": "high",
+        "IncidentDurationMinutes": "30",
+        "TimeOfDay": "business_hours"
+      }
+    },
+
+    {
+      "label": "sev1_critical_war_room",
+      "attributes": {
+        "BusinessImpact": "critical",
+        "SystemType": "customer_facing",
+        "AffectedUsersPct": "80",
+        "RevenueImpact": "high",
+        "DataLoss": "none",
+        "SecuritySuspected": "no",
+        "WorkaroundAvailable": "no",
+        "SLAviolationRisk": "high",
+        "IncidentDurationMinutes": "20",
+        "TimeOfDay": "business_hours"
+      }
+    },
+    {
+      "label": "sev1_critical_war_room",
+      "attributes": {
+        "BusinessImpact": "major",
+        "SystemType": "customer_facing",
+        "AffectedUsersPct": "70",
+        "RevenueImpact": "high",
+        "DataLoss": "temporary",
+        "SecuritySuspected": "no",
+        "WorkaroundAvailable": "partial",
+        "SLAviolationRisk": "high",
+        "IncidentDurationMinutes": "45",
+        "TimeOfDay": "off_hours"
+      }
+    },
+    {
+      "label": "sev1_critical_war_room",
+      "attributes": {
+        "BusinessImpact": "critical",
+        "SystemType": "internal_critical",
+        "AffectedUsersPct": "100",
+        "RevenueImpact": "medium",
+        "DataLoss": "temporary",
+        "SecuritySuspected": "no",
+        "WorkaroundAvailable": "no",
+        "SLAviolationRisk": "high",
+        "IncidentDurationMinutes": "60",
+        "TimeOfDay": "weekend"
+      }
+    },
+
+    {
+      "label": "sev2_high_page_oncall",
+      "attributes": {
+        "BusinessImpact": "major",
+        "SystemType": "customer_facing",
+        "AffectedUsersPct": "40",
+        "RevenueImpact": "medium",
+        "DataLoss": "none",
+        "SecuritySuspected": "no",
+        "WorkaroundAvailable": "partial",
+        "SLAviolationRisk": "medium",
+        "IncidentDurationMinutes": "50",
+        "TimeOfDay": "business_hours"
+      }
+    },
+    {
+      "label": "sev2_high_page_oncall",
+      "attributes": {
+        "BusinessImpact": "moderate",
+        "SystemType": "internal_critical",
+        "AffectedUsersPct": "100",
+        "RevenueImpact": "low",
+        "DataLoss": "none",
+        "SecuritySuspected": "no",
+        "WorkaroundAvailable": "yes",
+        "SLAviolationRisk": "high",
+        "IncidentDurationMinutes": "90",
+        "TimeOfDay": "off_hours"
+      }
+    },
+    {
+      "label": "sev2_high_page_oncall",
+      "attributes": {
+        "BusinessImpact": "major",
+        "SystemType": "batch",
+        "AffectedUsersPct": "0",
+        "RevenueImpact": "medium",
+        "DataLoss": "temporary",
+        "SecuritySuspected": "no",
+        "WorkaroundAvailable": "no",
+        "SLAviolationRisk": "high",
+        "IncidentDurationMinutes": "120",
+        "TimeOfDay": "weekend"
+      }
+    },
+
+    {
+      "label": "sev3_medium_monitor",
+      "attributes": {
+        "BusinessImpact": "moderate",
+        "SystemType": "customer_facing",
+        "AffectedUsersPct": "10",
+        "RevenueImpact": "low",
+        "DataLoss": "none",
+        "SecuritySuspected": "no",
+        "WorkaroundAvailable": "yes",
+        "SLAviolationRisk": "medium",
+        "IncidentDurationMinutes": "30",
+        "TimeOfDay": "business_hours"
+      }
+    },
+    {
+      "label": "sev3_medium_monitor",
+      "attributes": {
+        "BusinessImpact": "minor",
+        "SystemType": "internal_noncritical",
+        "AffectedUsersPct": "50",
+        "RevenueImpact": "none",
+        "DataLoss": "none",
+        "SecuritySuspected": "no",
+        "WorkaroundAvailable": "yes",
+        "SLAviolationRisk": "medium",
+        "IncidentDurationMinutes": "180",
+        "TimeOfDay": "off_hours"
+      }
+    },
+    {
+      "label": "sev3_medium_monitor",
+      "attributes": {
+        "BusinessImpact": "moderate",
+        "SystemType": "batch",
+        "AffectedUsersPct": "0",
+        "RevenueImpact": "low",
+        "DataLoss": "temporary",
+        "SecuritySuspected": "no",
+        "WorkaroundAvailable": "yes",
+        "SLAviolationRisk": "low",
+        "IncidentDurationMinutes": "240",
+        "TimeOfDay": "weekend"
+      }
+    },
+
+    {
+      "label": "sev4_low_log_and_close",
+      "attributes": {
+        "BusinessImpact": "minor",
+        "SystemType": "internal_noncritical",
+        "AffectedUsersPct": "5",
+        "RevenueImpact": "none",
+        "DataLoss": "none",
+        "SecuritySuspected": "no",
+        "WorkaroundAvailable": "yes",
+        "SLAviolationRisk": "low",
+        "IncidentDurationMinutes": "15",
+        "TimeOfDay": "business_hours"
+      }
+    },
+    {
+      "label": "sev4_low_log_and_close",
+      "attributes": {
+        "BusinessImpact": "none",
+        "SystemType": "internal_noncritical",
+        "AffectedUsersPct": "0",
+        "RevenueImpact": "none",
+        "DataLoss": "none",
+        "SecuritySuspected": "no",
+        "WorkaroundAvailable": "yes",
+        "SLAviolationRisk": "low",
+        "IncidentDurationMinutes": "5",
+        "TimeOfDay": "off_hours"
+      }
+    },
+    {
+      "label": "sev4_low_log_and_close",
+      "attributes": {
+        "BusinessImpact": "minor",
+        "SystemType": "batch",
+        "AffectedUsersPct": "0",
+        "RevenueImpact": "none",
+        "DataLoss": "none",
+        "SecuritySuspected": "no",
+        "WorkaroundAvailable": "yes",
+        "SLAviolationRisk": "low",
+        "IncidentDurationMinutes": "60",
+        "TimeOfDay": "weekend"
+      }
+    },
+
+    {
+      "label": "sev2_high_page_oncall",
+      "attributes": {
+        "BusinessImpact": "moderate",
+        "SystemType": "customer_facing",
+        "AffectedUsersPct": "25",
+        "RevenueImpact": "medium",
+        "DataLoss": "none",
+        "SecuritySuspected": "no",
+        "WorkaroundAvailable": "partial",
+        "SLAviolationRisk": "high",
+        "IncidentDurationMinutes": "70",
+        "TimeOfDay": "business_hours"
+      }
+    },
+    {
+      "label": "sev1_critical_war_room",
+      "attributes": {
+        "BusinessImpact": "critical",
+        "SystemType": "customer_facing",
+        "AffectedUsersPct": "50",
+        "RevenueImpact": "high",
+        "DataLoss": "permanent",
+        "SecuritySuspected": "no",
+        "WorkaroundAvailable": "no",
+        "SLAviolationRisk": "high",
+        "IncidentDurationMinutes": "15",
+        "TimeOfDay": "business_hours"
+      }
+    },
+    {
+      "label": "sev3_medium_monitor",
+      "attributes": {
+        "BusinessImpact": "moderate",
+        "SystemType": "internal_critical",
+        "AffectedUsersPct": "100",
+        "RevenueImpact": "low",
+        "DataLoss": "none",
+        "SecuritySuspected": "no",
+        "WorkaroundAvailable": "yes",
+        "SLAviolationRisk": "medium",
+        "IncidentDurationMinutes": "20",
+        "TimeOfDay": "business_hours"
+      }
+    },
+    {
+      "label": "sev4_low_log_and_close",
+      "attributes": {
+        "BusinessImpact": "none",
+        "SystemType": "batch",
+        "AffectedUsersPct": "0",
+        "RevenueImpact": "none",
+        "DataLoss": "none",
+        "SecuritySuspected": "no",
+        "WorkaroundAvailable": "yes",
+        "SLAviolationRisk": "low",
+        "IncidentDurationMinutes": "120",
+        "TimeOfDay": "weekend"
+      }
+    }
+  ]
+}

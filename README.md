@@ -19,8 +19,8 @@ This is a minimal but working MVP:
   - gain ratio,
   - `*` wildcard in examples for “don’t care / unknown”.
 - JSON-based knowledge bases:
-  - `sunday.expert.json` – “what to do on Sunday”.
-  - `flightdisruption.expert.json` – simplified flight disruption handling.
+  - `sunday.json` – “what to do on Sunday”.
+  - `flight_disruption.json` – simplified flight disruption handling.
 - Interactive consultation driven by the **learned tree**:
   - questions follow the actual decision path (root → children),
   - not a fixed attribute order from the file.

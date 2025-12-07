@@ -15,7 +15,7 @@ namespace ExpertEase
         public static void Main()
 		{
 			// 1. Load the attributes and examples
-			var (attributes, examples) = LoadExpertFromFile("medical_triage.json");
+			var (attributes, examples) = LoadExpertFromFile("incident_severity.json");
 
 			// 2. Train the tree
 			var root = C45Trainer.Train(examples, attributes);
@@ -96,7 +96,7 @@ namespace ExpertEase
 			Console.WriteLine("Type 'why' to ask why I'm asking a question.");
 			Console.WriteLine();
 
-			var answers = new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);
+			var answers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
 			// Walk down the learned tree
 			var current = root;
@@ -115,56 +115,50 @@ namespace ExpertEase
 				{
 					if (current.IsNumericSplit)
 					{
-						// numeric split but no explicit AttributeDef -> treat as numeric
 						attrDef = new AttributeDef(current.AttributeName);
 					}
 					else
 					{
-						// categorical split: use children keys as domain if available
 						var domain = current.Children?.Keys.ToList() ?? new List<string>();
 						attrDef = new AttributeDef(current.AttributeName, domain);
 					}
 				}
 
-				string promptSuffix = attrDef.Kind == AttributeKind.Numeric
-					? "numeric"
-					: string.Join("/", attrDef.Domain);
-
-				while (true)
+				// Build prompt
+				if (attrDef.Kind == AttributeKind.Numeric)
 				{
-					Console.Write($"{attrDef.Name}? ({promptSuffix}): ");
-					var raw = Console.ReadLine();
-					var input = raw?.Trim();
-
-					if (string.IsNullOrEmpty(input))
+					// Numeric prompt
+					while (true)
 					{
-						Console.WriteLine("Please enter a value or 'why'.");
-						continue;
-					}
+						Console.Write($"{attrDef.Name}? (numeric): ");
+						var raw = Console.ReadLine();
+						var input = raw?.Trim();
 
-					// WHY: ask why this question matters at this point
-					if (string.Equals(input, "why", StringComparison.OrdinalIgnoreCase))
-					{
-						var whyText = C45Trainer.Why(root, attrDef, answers);
+						if (string.IsNullOrEmpty(input))
+						{
+							Console.WriteLine("Please enter a value or 'why'.");
+							continue;
+						}
 
-						Console.WriteLine();
-						Console.WriteLine("--- WHY ---");
-						Console.WriteLine(whyText);
-						Console.WriteLine();
+						if (string.Equals(input, "why", StringComparison.OrdinalIgnoreCase))
+						{
+							var whyText = C45Trainer.Why(root, attrDef, answers);
 
-						continue; // re-ask the same attribute
-					}
+							Console.WriteLine();
+							Console.WriteLine("--- WHY ---");
+							Console.WriteLine(whyText);
+							Console.WriteLine();
 
-					// Numeric attribute
-					if (attrDef.Kind == AttributeKind.Numeric)
-					{
+							continue; // re-ask same question
+						}
+
 						if (!double.TryParse(input, NumberStyles.Float, CultureInfo.InvariantCulture, out var d))
 						{
 							Console.WriteLine("Invalid value, please enter a numeric value (e.g. 23.5) or type 'why'.");
 							continue;
 						}
 
-						// Store as invariant string
+						// Store numeric answer
 						var canonical = d.ToString(CultureInfo.InvariantCulture);
 						answers[attrDef.Name] = canonical;
 
@@ -175,51 +169,98 @@ namespace ExpertEase
 							throw new InvalidOperationException("Numeric split node not fully initialized.");
 						}
 
-						// Move down the correct branch
 						current = d <= current.Threshold.Value
 							? current.LessOrEqualChild
 							: current.GreaterChild;
 
 						break;
 					}
-					else
-					{
-						// Categorical attribute: validate against domain
-						var match = attrDef.Domain
-							.FirstOrDefault(v =>
-								string.Equals(v, input, StringComparison.OrdinalIgnoreCase));
+				}
+				else
+				{
+					// Categorical prompt with numeric shortcuts
+					var domain = attrDef.Domain.ToList();
+					if (domain.Count == 0 && current.Children != null)
+						domain = current.Children.Keys.ToList();
 
-						if (match == null)
+					while (true)
+					{
+						// Example: CauseCategory? (1) airline_control (2) extraordinary:
+						var optionsText = string.Join(" ",
+							domain.Select((v, i) => $"({i + 1}) {v}"));
+
+						Console.Write($"{attrDef.Name}? {optionsText}: ");
+						var raw = Console.ReadLine();
+						var input = raw?.Trim();
+
+						if (string.IsNullOrEmpty(input))
 						{
-							Console.WriteLine("Invalid value, please choose one of: " +
-											string.Join(", ", attrDef.Domain) +
-											" or type 'why'.");
+							Console.WriteLine("Please enter a number, a value, or 'why'.");
 							continue;
 						}
 
-						answers[attrDef.Name] = match;
-
-						if (current.Children == null ||
-							!current.Children.TryGetValue(match, out var next))
+						// WHY
+						if (string.Equals(input, "why", StringComparison.OrdinalIgnoreCase))
 						{
-							throw new InvalidOperationException(
-								$"No branch in the tree for {attrDef.Name} = {match}.");
+							var whyText = C45Trainer.Why(root, attrDef, answers);
+
+							Console.WriteLine();
+							Console.WriteLine("--- WHY ---");
+							Console.WriteLine(whyText);
+							Console.WriteLine();
+
+							continue; // re-ask same question
 						}
 
-						// Move down the categorical branch
+						string chosenValue = null;
+
+						// Try numeric selection first
+						if (int.TryParse(input, out var idx))
+						{
+							if (idx >= 1 && idx <= domain.Count)
+							{
+								chosenValue = domain[idx - 1];
+							}
+						}
+
+						// Then try textual match if numeric didn't work
+						if (chosenValue == null)
+						{
+							chosenValue = domain.FirstOrDefault(v =>
+								string.Equals(v, input, StringComparison.OrdinalIgnoreCase));
+						}
+
+						if (chosenValue == null)
+						{
+							Console.WriteLine("Invalid value. Enter one of:");
+							Console.WriteLine("- a number between 1 and " + domain.Count);
+							Console.WriteLine("- one of: " + string.Join(", ", domain));
+							Console.WriteLine("- or 'why' to understand why I'm asking.");
+							continue;
+						}
+
+						// Store answer
+						answers[attrDef.Name] = chosenValue;
+
+						if (current.Children == null ||
+							!current.Children.TryGetValue(chosenValue, out var next))
+						{
+							throw new InvalidOperationException(
+								$"No branch in the tree for {attrDef.Name} = {chosenValue}.");
+						}
+
 						current = next;
 						break;
 					}
 				}
 			}
 
-			// We are at a leaf
+			// At leaf
 			Console.WriteLine();
 			Console.WriteLine("=== RESULT ===");
 			Console.WriteLine($"Advice: {current.Label}");
 			Console.WriteLine();
 
-			// HOW explanation based on the answers actually used
 			var how = C45Trainer.How(root, answers);
 			Console.WriteLine("--- HOW ---");
 			Console.WriteLine(how);
