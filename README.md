@@ -57,13 +57,15 @@ Build the project:
 
 ```bash
 dotnet build
+```
 
 Run with the default knowledge base:
-
+```
 dotnet run
+```
 
 Other example knowledge bases:
-
+```
 dotnet run -- flight_ops.json
 dotnet run -- flight_disruption.json
 dotnet run -- crew_disruption.json
