@@ -1,0 +1,134 @@
+{
+  "name": "CarPricingAdvisor",
+  "description": "Used car pricing advice based on brand, mileage, age, and condition.",
+  "attributes": [
+    {
+      "name": "Brand",
+      "kind": "categorical",
+      "domain": [ "luxury", "standard", "budget" ]
+    },
+    {
+      "name": "Mileage",
+      "kind": "numeric"
+    },
+    {
+      "name": "Age",
+      "kind": "numeric"
+    },
+    {
+      "name": "Condition",
+      "kind": "categorical",
+      "domain": [ "excellent", "good", "poor" ]
+    }
+  ],
+  "examples": [
+    {
+      "label": "premium",
+      "attributes": {
+        "Brand": "luxury",
+        "Mileage": "30000",
+        "Age": "2",
+        "Condition": "excellent"
+      }
+    },
+    {
+      "label": "premium",
+      "attributes": {
+        "Brand": "luxury",
+        "Mileage": "45000",
+        "Age": "3",
+        "Condition": "good"
+      }
+    },
+    {
+      "label": "fair",
+      "attributes": {
+        "Brand": "luxury",
+        "Mileage": "120000",
+        "Age": "7",
+        "Condition": "good"
+      }
+    },
+    {
+      "label": "fair",
+      "attributes": {
+        "Brand": "standard",
+        "Mileage": "40000",
+        "Age": "3",
+        "Condition": "good"
+      }
+    },
+    {
+      "label": "fair",
+      "attributes": {
+        "Brand": "standard",
+        "Mileage": "80000",
+        "Age": "5",
+        "Condition": "excellent"
+      }
+    },
+    {
+      "label": "budget",
+      "attributes": {
+        "Brand": "budget",
+        "Mileage": "60000",
+        "Age": "4",
+        "Condition": "good"
+      }
+    },
+    {
+      "label": "budget",
+      "attributes": {
+        "Brand": "standard",
+        "Mileage": "130000",
+        "Age": "8",
+        "Condition": "good"
+      }
+    },
+    {
+      "label": "avoid",
+      "attributes": {
+        "Brand": "*",
+        "Mileage": "200000",
+        "Age": "12",
+        "Condition": "poor"
+      }
+    },
+    {
+      "label": "avoid",
+      "attributes": {
+        "Brand": "*",
+        "Mileage": "180000",
+        "Age": "10",
+        "Condition": "poor"
+      }
+    },
+    {
+      "label": "fair",
+      "attributes": {
+        "Brand": "budget",
+        "Mileage": "20000",
+        "Age": "1",
+        "Condition": "*"
+      }
+    },
+    {
+      "label": "avoid",
+      "attributes": {
+        "Brand": "budget",
+        "Mileage": "160000",
+        "Age": "9",
+        "Condition": "poor"
+      }
+    },
+    {
+      "label": "premium",
+      "attributes": {
+        "Brand": "luxury",
+        "Mileage": "15000",
+        "Age": "1",
+        "Condition": "*"
+      }
+    }
+  ]
+}

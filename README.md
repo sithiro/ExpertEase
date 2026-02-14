@@ -13,7 +13,7 @@ Instead of opaque ML models, ExpertEase:
 
 This is a minimal but working MVP:
 
-- C# console app (no external dependencies beyond the .NET SDK).
+- C# solution (library + console app, no external dependencies beyond the .NET SDK).
 - C4.5-style training:
   - categorical + numeric attributes,
   - gain ratio,
@@ -53,25 +53,25 @@ exploration, and nostalgia tool.
 
 ## Running
 
-Build the project:
+Build the solution:
 
 ```bash
-dotnet build
+dotnet build ExpertEase.sln
 ```
 
 Run with the default knowledge base:
 ```
-dotnet run
+dotnet run --project ExpertEase.Console
 ```
 
 Other example knowledge bases:
 ```
-dotnet run -- flight_ops.json
-dotnet run -- flight_disruption.json
-dotnet run -- crew_disruption.json
-dotnet run -- incident_severity.json
-dotnet run -- medical_triage.json
-dotnet run -- stock_entry.json
+dotnet run --project ExpertEase.Console -- flight_ops.json
+dotnet run --project ExpertEase.Console -- flight_disruption.json
+dotnet run --project ExpertEase.Console -- crew_disruption.json
+dotnet run --project ExpertEase.Console -- incident_severity.json
+dotnet run --project ExpertEase.Console -- medical_triage.json
+dotnet run --project ExpertEase.Console -- stock_entry.json
 ```
 
 ## License & author
