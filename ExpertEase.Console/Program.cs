@@ -38,13 +38,16 @@ namespace ExpertEase.Console
             if (!File.Exists(kbPath))
             {
                 System.Console.WriteLine($"Error: file '{kbPath}' not found.");
-                System.Console.WriteLine("Pass a path to a .json knowledge base, e.g.:");
+                System.Console.WriteLine("Pass a path to a .json or .csv knowledge base, e.g.:");
                 System.Console.WriteLine("  dotnet run -- sunday.json");
+                System.Console.WriteLine("  dotnet run -- car_pricing.csv");
                 return;
             }
 
             // 2. Load attributes + examples from the chosen file
-            var (attributes, examples) = LoadExpertFromFile(kbPath);
+            var (attributes, examples) = Path.GetExtension(kbPath).ToLowerInvariant() == ".csv"
+                ? LoadCsvFile(kbPath)
+                : LoadExpertFromFile(kbPath);
 
             // 3. Train the tree
             var root = C45Trainer.Train(examples, attributes);
@@ -101,6 +104,137 @@ namespace ExpertEase.Console
             ).ToList();
 
             return (attrs, examples);
+        }
+
+        static (List<AttributeDef> attrs, List<TrainingExample> examples) LoadCsvFile(string path)
+        {
+            var lines = File.ReadAllLines(path)
+                .Where(l => !string.IsNullOrWhiteSpace(l))
+                .ToList();
+
+            if (lines.Count < 2)
+                throw new InvalidOperationException("CSV file must have a header row and at least one data row.");
+
+            var header = ParseCsvLine(lines[0]);
+            if (header.Count < 2)
+                throw new InvalidOperationException("CSV file must have at least one attribute column and a label column.");
+
+            // Last column is the label; the rest are attributes
+            var attrNames = header.Take(header.Count - 1).ToList();
+            int attrCount = attrNames.Count;
+
+            // Parse all data rows into raw string values
+            var rows = new List<string[]>();
+            for (int i = 1; i < lines.Count; i++)
+            {
+                var fields = ParseCsvLine(lines[i]);
+                if (fields.Count != header.Count)
+                    throw new InvalidOperationException(
+                        $"Row {i + 1} has {fields.Count} fields but header has {header.Count}.");
+                rows.Add(fields.ToArray());
+            }
+
+            // Infer types: numeric if all non-wildcard values parse as double
+            var isNumeric = new bool[attrCount];
+            for (int col = 0; col < attrCount; col++)
+            {
+                isNumeric[col] = rows
+                    .Select(r => r[col])
+                    .Where(v => v != "*")
+                    .All(v => double.TryParse(v, NumberStyles.Float, CultureInfo.InvariantCulture, out _));
+            }
+
+            // Build attribute definitions
+            var attrs = new List<AttributeDef>();
+            for (int col = 0; col < attrCount; col++)
+            {
+                if (isNumeric[col])
+                {
+                    attrs.Add(new AttributeDef(attrNames[col]));
+                }
+                else
+                {
+                    var domain = rows
+                        .Select(r => r[col])
+                        .Where(v => v != "*")
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .OrderBy(v => v, StringComparer.OrdinalIgnoreCase)
+                        .ToList();
+                    attrs.Add(new AttributeDef(attrNames[col], domain));
+                }
+            }
+
+            // Build training examples
+            var examples = rows.Select(r =>
+            {
+                var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                for (int col = 0; col < attrCount; col++)
+                    dict[attrNames[col]] = r[col];
+                var label = r[attrCount]; // last column
+                return new TrainingExample(dict, label);
+            }).ToList();
+
+            return (attrs, examples);
+        }
+
+        static List<string> ParseCsvLine(string line)
+        {
+            var fields = new List<string>();
+            int i = 0;
+            while (i <= line.Length)
+            {
+                if (i == line.Length)
+                {
+                    // trailing comma produced an empty final field
+                    fields.Add("");
+                    break;
+                }
+
+                if (line[i] == '"')
+                {
+                    // Quoted field
+                    i++; // skip opening quote
+                    var sb = new System.Text.StringBuilder();
+                    while (i < line.Length)
+                    {
+                        if (line[i] == '"')
+                        {
+                            if (i + 1 < line.Length && line[i + 1] == '"')
+                            {
+                                sb.Append('"');
+                                i += 2;
+                            }
+                            else
+                            {
+                                i++; // skip closing quote
+                                break;
+                            }
+                        }
+                        else
+                        {
+                            sb.Append(line[i]);
+                            i++;
+                        }
+                    }
+                    fields.Add(sb.ToString().Trim());
+                    // Skip comma after closing quote
+                    if (i < line.Length && line[i] == ',')
+                        i++;
+                }
+                else
+                {
+                    // Unquoted field
+                    int start = i;
+                    while (i < line.Length && line[i] != ',')
+                        i++;
+                    fields.Add(line.Substring(start, i - start).Trim());
+                    if (i < line.Length)
+                        i++; // skip comma
+                    else
+                        break;
+                }
+            }
+            return fields;
         }
 
         private static void PrintQueryResult(TreeNode root, Dictionary<string, string> query)

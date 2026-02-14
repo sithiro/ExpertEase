@@ -4,7 +4,7 @@ An 80s-style **Expert-Ease shell** that lets you build, train, and interrogate *
 
 Instead of opaque ML models, ExpertEase:
 
-- reads a small **JSON "knowledge base"** (attributes + examples),
+- reads a small **knowledge base** in JSON or CSV format (attributes + examples),
 - induces a **decision tree** (C4.5 gain ratio, categorical + numeric),
 - lets you **consult** it interactively (with a `why` command),
 - and explains its decisions with a human-readable **HOW** trace and extracted rules.
@@ -32,12 +32,26 @@ Full implementation of Quinlan's C4.5 decision tree learner:
 
 ### Knowledge bases
 
-Eight included example knowledge bases:
+Two formats are supported — auto-detected by file extension:
+
+- **JSON** (`.json`): explicit attribute metadata (name, kind, domain) plus examples. Best when you need full control over attribute types and domains.
+- **CSV** (`.csv`): flat table with a header row. Last column is always the label. Attribute types and domains are inferred automatically — numeric if all non-`*` values parse as numbers, categorical otherwise. Easy to create in Excel or any text editor.
+
+**CSV example** (`sunday.csv`):
+```csv
+Weather,Family,Car,Advice
+raining,yes,yes,museum
+sunny,yes,yes,beach
+*,no,yes,fishing
+*,*,no,home
+```
+
+Included example knowledge bases:
 
 | File | Domain | Attributes |
 |---|---|---|
-| `sunday.json` | What to do on Sunday | categorical + wildcards |
-| `car_pricing.json` | Used car pricing advice | categorical + numeric + wildcards |
+| `sunday.json` / `.csv` | What to do on Sunday | categorical + wildcards |
+| `car_pricing.json` / `.csv` | Used car pricing advice | categorical + numeric + wildcards |
 | `flight_disruption.json` | Flight disruption handling | categorical + numeric |
 | `flight_ops.json` | Flight operations / turnaround | categorical + numeric |
 | `crew_disruption.json` | Crew-related disruptions | categorical + numeric |
@@ -54,7 +68,7 @@ ExpertEase/
     C45Trainer.cs
   ExpertEase.Console/          Interactive CLI
     Program.cs
-    *.json                     Knowledge base files
+    *.json, *.csv              Knowledge base files
 ```
 
 ## Running
@@ -70,9 +84,10 @@ Run with the default knowledge base (`sunday.json`):
 dotnet run --project ExpertEase.Console
 ```
 
-Run with a specific knowledge base:
+Run with a specific knowledge base (JSON or CSV):
 ```bash
 dotnet run --project ExpertEase.Console -- car_pricing.json
+dotnet run --project ExpertEase.Console -- car_pricing.csv
 dotnet run --project ExpertEase.Console -- flight_ops.json
 dotnet run --project ExpertEase.Console -- flight_disruption.json
 dotnet run --project ExpertEase.Console -- crew_disruption.json

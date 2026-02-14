@@ -10,5 +10,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Update="*.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="*.csv" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

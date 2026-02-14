@@ -1,0 +1,13 @@
+Brand,Mileage,Age,Condition,Advice
+luxury,30000,2,excellent,premium
+luxury,45000,3,good,premium
+luxury,120000,7,good,fair
+standard,40000,3,good,fair
+standard,80000,5,excellent,fair
+budget,60000,4,good,budget
+standard,130000,8,good,budget
+*,200000,12,poor,avoid
+*,180000,10,poor,avoid
+budget,20000,1,*,fair
+budget,160000,9,poor,avoid
+luxury,15000,1,*,premium
