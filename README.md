@@ -9,6 +9,8 @@ Instead of opaque ML models, ExpertEase:
 - lets you **consult** it interactively (with `why` and `how` commands),
 - and explains its decisions with a human-readable **HOW** trace and extracted rules.
 
+![ExpertEase MCP consultation in Claude Code](screenshot.png)
+
 ## Status
 
 C# solution with three projects:
