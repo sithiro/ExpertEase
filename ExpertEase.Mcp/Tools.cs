@@ -96,6 +96,23 @@ public static class Tools
         return sb.ToString();
     }
 
+    [McpServerTool, Description("Reload and retrain a knowledge base from disk. Use this after editing a KB file to validate it was parsed and trained successfully. Returns stats about the loaded knowledge base.")]
+    public static string ReloadKnowledgeBase(
+        [Description("KB filename (e.g. 'car_pricing.csv' or 'sunday.json'). Use list_knowledge_bases to discover available files.")] string knowledgeBase)
+    {
+        var kbPath = KnowledgeBaseLoader.ResolveKbPath(knowledgeBase);
+        var (attrs, examples) = KnowledgeBaseLoader.LoadFromFile(kbPath);
+        var root = C45Trainer.Train(examples, attrs);
+        var rules = RuleExtractor.ExtractRules(root);
+
+        var sb = new StringBuilder();
+        sb.AppendLine($"Knowledge base '{knowledgeBase}' reloaded and trained successfully.");
+        sb.AppendLine($"- Examples: {examples.Count}");
+        sb.AppendLine($"- Attributes: {attrs.Count}");
+        sb.AppendLine($"- Rules extracted: {rules.Count}");
+        return sb.ToString();
+    }
+
     [McpServerTool, Description("Start an interactive consultation session with a knowledge base. Returns the first question to ask the user. Use answer_question to continue the consultation step by step.")]
     public static string StartConsultation(
         [Description("KB filename (e.g. 'car_pricing.csv' or 'sunday.json'). Use list_knowledge_bases to discover available files.")] string knowledgeBase)
