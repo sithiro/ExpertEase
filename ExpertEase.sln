@@ -7,6 +7,22 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExpertEase.Library", "Exper
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExpertEase.Console", "ExpertEase.Console\ExpertEase.Console.csproj", "{00B72582-8FCD-493B-854C-3DD9B39F1C90}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExpertEase.Mcp", "ExpertEase.Mcp\ExpertEase.Mcp.csproj", "{00BDF558-68BD-482B-A718-B1EB07A65B1A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ExpertEase.Knowledge", "ExpertEase.Knowledge", "{E4A0B1ED-B6A4-4B3F-9C1E-7D2F8A5E6C3D}"
+	ProjectSection(SolutionItems) = preProject
+		ExpertEase.Knowledge\car_pricing.csv = ExpertEase.Knowledge\car_pricing.csv
+		ExpertEase.Knowledge\car_pricing.json = ExpertEase.Knowledge\car_pricing.json
+		ExpertEase.Knowledge\crew_disruption.json = ExpertEase.Knowledge\crew_disruption.json
+		ExpertEase.Knowledge\flight_disruption.json = ExpertEase.Knowledge\flight_disruption.json
+		ExpertEase.Knowledge\flight_ops.json = ExpertEase.Knowledge\flight_ops.json
+		ExpertEase.Knowledge\incident_severity.json = ExpertEase.Knowledge\incident_severity.json
+		ExpertEase.Knowledge\medical_triage.json = ExpertEase.Knowledge\medical_triage.json
+		ExpertEase.Knowledge\stock_entry.json = ExpertEase.Knowledge\stock_entry.json
+		ExpertEase.Knowledge\sunday.csv = ExpertEase.Knowledge\sunday.csv
+		ExpertEase.Knowledge\sunday.json = ExpertEase.Knowledge\sunday.json
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -41,6 +57,18 @@ Global
 		{00B72582-8FCD-493B-854C-3DD9B39F1C90}.Release|x64.Build.0 = Release|Any CPU
 		{00B72582-8FCD-493B-854C-3DD9B39F1C90}.Release|x86.ActiveCfg = Release|Any CPU
 		{00B72582-8FCD-493B-854C-3DD9B39F1C90}.Release|x86.Build.0 = Release|Any CPU
+		{00BDF558-68BD-482B-A718-B1EB07A65B1A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{00BDF558-68BD-482B-A718-B1EB07A65B1A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{00BDF558-68BD-482B-A718-B1EB07A65B1A}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{00BDF558-68BD-482B-A718-B1EB07A65B1A}.Debug|x64.Build.0 = Debug|Any CPU
+		{00BDF558-68BD-482B-A718-B1EB07A65B1A}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{00BDF558-68BD-482B-A718-B1EB07A65B1A}.Debug|x86.Build.0 = Debug|Any CPU
+		{00BDF558-68BD-482B-A718-B1EB07A65B1A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{00BDF558-68BD-482B-A718-B1EB07A65B1A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{00BDF558-68BD-482B-A718-B1EB07A65B1A}.Release|x64.ActiveCfg = Release|Any CPU
+		{00BDF558-68BD-482B-A718-B1EB07A65B1A}.Release|x64.Build.0 = Release|Any CPU
+		{00BDF558-68BD-482B-A718-B1EB07A65B1A}.Release|x86.ActiveCfg = Release|Any CPU
+		{00BDF558-68BD-482B-A718-B1EB07A65B1A}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

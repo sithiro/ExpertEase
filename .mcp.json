@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "expertease": {
+      "command": "dotnet",
+      "args": ["run", "--project", "ExpertEase.Mcp"]
+    }
+  }
+}

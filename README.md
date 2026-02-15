@@ -6,12 +6,15 @@ Instead of opaque ML models, ExpertEase:
 
 - reads a small **knowledge base** in JSON or CSV format (attributes + examples),
 - induces a **decision tree** (C4.5 gain ratio, categorical + numeric),
-- lets you **consult** it interactively (with a `why` command),
+- lets you **consult** it interactively (with `why` and `how` commands),
 - and explains its decisions with a human-readable **HOW** trace and extracted rules.
 
 ## Status
 
-C# solution (library + console app, no external dependencies beyond the .NET 9 SDK).
+C# solution with three projects:
+- **ExpertEase.Library** — core C4.5 algorithm (no external dependencies)
+- **ExpertEase.Console** — interactive CLI
+- **ExpertEase.Mcp** — MCP (Model Context Protocol) server for use with AI assistants like Claude
 
 ### C4.5 algorithm
 
@@ -66,12 +69,16 @@ ExpertEase/
   ExpertEase.sln
   ExpertEase.Library/          Core algorithm (C45Trainer, RuleExtractor, data types)
     C45Trainer.cs
+    KnowledgeBaseLoader.cs     KB loading (JSON + CSV), shared by Console and Mcp
   ExpertEase.Console/          Interactive CLI
     Program.cs
-    *.json, *.csv              Knowledge base files
+  ExpertEase.Mcp/              MCP server for AI assistants
+    Program.cs
+    Tools.cs                   MCP tool definitions
+  ExpertEase.Knowledge/        Knowledge base files (*.json, *.csv)
 ```
 
-## Running
+## Running the Console
 
 Build the solution:
 
@@ -94,6 +101,41 @@ dotnet run --project ExpertEase.Console -- crew_disruption.json
 dotnet run --project ExpertEase.Console -- incident_severity.json
 dotnet run --project ExpertEase.Console -- medical_triage.json
 dotnet run --project ExpertEase.Console -- stock_entry.json
+```
+
+## Running the MCP Server
+
+The MCP server exposes ExpertEase as a set of tools for AI assistants via the [Model Context Protocol](https://modelcontextprotocol.io/).
+
+```bash
+dotnet run --project ExpertEase.Mcp
+```
+
+### Available MCP tools
+
+| Tool | Description |
+|------|-------------|
+| `list_knowledge_bases` | Lists all available .json and .csv KB files |
+| `classify` | One-shot classification — pass all attributes, get advice + explanation |
+| `get_decision_tree` | Shows the full tree, IF-THEN rules, and attributes for a KB |
+| `start_consultation` | Begins an interactive session, returns the first question |
+| `answer_question` | Answers the current question, returns next question or conclusion |
+| `explain_why` | Explains why the current question is being asked (mid-consultation) |
+| `explain_how` | Shows the full decision tree and rules for the session's KB |
+
+### Claude Code configuration
+
+Add to `.mcp.json` in your project root:
+
+```json
+{
+  "mcpServers": {
+    "expertease": {
+      "command": "dotnet",
+      "args": ["run", "--project", "ExpertEase.Mcp"]
+    }
+  }
+}
 ```
 
 ## Creating a knowledge base
