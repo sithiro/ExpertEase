@@ -77,6 +77,7 @@ namespace ExpertEase.Console
             System.Console.WriteLine();
             System.Console.WriteLine("=== Interactive consultation ===");
             System.Console.WriteLine("Type 'why' to ask why I'm asking a question.");
+            System.Console.WriteLine("Type 'quit' to exit the consultation.");
             System.Console.WriteLine();
 
             var answers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -119,8 +120,14 @@ namespace ExpertEase.Console
 
                         if (string.IsNullOrEmpty(input))
                         {
-                            System.Console.WriteLine("Please enter a value or 'why'.");
+                            System.Console.WriteLine("Please enter a value, 'why', or 'quit'.");
                             continue;
+                        }
+
+                        if (string.Equals(input, "quit", StringComparison.OrdinalIgnoreCase))
+                        {
+                            System.Console.WriteLine("Consultation cancelled.");
+                            return;
                         }
 
                         if (string.Equals(input, "why", StringComparison.OrdinalIgnoreCase))
@@ -137,7 +144,7 @@ namespace ExpertEase.Console
 
                         if (!double.TryParse(input, NumberStyles.Float, CultureInfo.InvariantCulture, out var d))
                         {
-                            System.Console.WriteLine("Invalid value, please enter a numeric value (e.g. 23.5) or type 'why'.");
+                            System.Console.WriteLine("Invalid value, please enter a numeric value (e.g. 23.5), 'why', or 'quit'.");
                             continue;
                         }
 
@@ -178,8 +185,15 @@ namespace ExpertEase.Console
 
                         if (string.IsNullOrEmpty(input))
                         {
-                            System.Console.WriteLine("Please enter a number, a value, or 'why'.");
+                            System.Console.WriteLine("Please enter a number, a value, 'why', or 'quit'.");
                             continue;
+                        }
+
+                        // QUIT
+                        if (string.Equals(input, "quit", StringComparison.OrdinalIgnoreCase))
+                        {
+                            System.Console.WriteLine("Consultation cancelled.");
+                            return;
                         }
 
                         // WHY
@@ -218,7 +232,8 @@ namespace ExpertEase.Console
                             System.Console.WriteLine("Invalid value. Enter one of:");
                             System.Console.WriteLine("- a number between 1 and " + domain.Count);
                             System.Console.WriteLine("- one of: " + string.Join(", ", domain));
-                            System.Console.WriteLine("- or 'why' to understand why I'm asking.");
+                            System.Console.WriteLine("- or 'why' to understand why I'm asking");
+                            System.Console.WriteLine("- or 'quit' to exit the consultation.");
                             continue;
                         }
 

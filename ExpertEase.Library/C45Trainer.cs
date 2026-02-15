@@ -1082,11 +1082,25 @@ namespace ExpertEase
 			sb.AppendLine($"{root.AttributeName}?");
 			sb.AppendLine("│");
 
-			RenderChildren(root, labelCol: 0, sb);
+			RenderChildren(root, labelCol: 0, new List<int>(), sb);
 			return sb.ToString();
 		}
 
-		private static void RenderChildren(TreeNode node, int labelCol, StringBuilder sb)
+		// Build a prefix string of the given width, placing │ at each column in verticalBars
+		private static string BuildPrefix(int width, List<int> verticalBars)
+		{
+			if (width <= 0) return "";
+			var chars = new char[width];
+			Array.Fill(chars, ' ');
+			foreach (var col in verticalBars)
+			{
+				if (col < width)
+					chars[col] = '│';
+			}
+			return new string(chars);
+		}
+
+		private static void RenderChildren(TreeNode node, int labelCol, List<int> verticalBars, StringBuilder sb)
 		{
 			if (node.IsNumericSplit)
 			{
@@ -1099,9 +1113,9 @@ namespace ExpertEase
 
 				string th = node.Threshold.Value.ToString(CultureInfo.InvariantCulture);
 
-				// <= branch
+				// <= branch (not last)
 				var line1 = new StringBuilder();
-				line1.Append(' ', labelCol);
+				line1.Append(BuildPrefix(labelCol, verticalBars));
 				line1.Append("├─ ");
 				line1.Append($"<= {th}");
 
@@ -1124,14 +1138,15 @@ namespace ExpertEase
 						$"<= {th}".Length +
 						" -> ".Length;
 
-					sb.AppendLine(new string(' ', childLabelCol) + "│");
-
-					RenderChildren(node.LessOrEqualChild, childLabelCol, sb);
+					verticalBars.Add(labelCol);
+					sb.AppendLine(BuildPrefix(childLabelCol, verticalBars) + "│");
+					RenderChildren(node.LessOrEqualChild, childLabelCol, verticalBars, sb);
+					verticalBars.RemoveAt(verticalBars.Count - 1);
 				}
 
-				// > branch
+				// > branch (last)
 				var line2 = new StringBuilder();
-				line2.Append(' ', labelCol);
+				line2.Append(BuildPrefix(labelCol, verticalBars));
 				line2.Append("└─ ");
 				line2.Append($"> {th}");
 
@@ -1154,9 +1169,8 @@ namespace ExpertEase
 						$"> {th}".Length +
 						" -> ".Length;
 
-					sb.AppendLine(new string(' ', childLabelCol) + "│");
-
-					RenderChildren(node.GreaterChild, childLabelCol, sb);
+					sb.AppendLine(BuildPrefix(childLabelCol, verticalBars) + "│");
+					RenderChildren(node.GreaterChild, childLabelCol, verticalBars, sb);
 				}
 
 				return;
@@ -1176,7 +1190,7 @@ namespace ExpertEase
 				string connector = isLast ? "└─ " : "├─ ";
 
 				var line = new StringBuilder();
-				line.Append(' ', labelCol);
+				line.Append(BuildPrefix(labelCol, verticalBars));
 				line.Append(connector);
 				line.Append(edgeLabel);
 
@@ -1199,10 +1213,10 @@ namespace ExpertEase
 						edgeLabel.Length +
 						" -> ".Length;
 
-					// Vertical line under first letter of child's label
-					sb.AppendLine(new string(' ', childLabelCol) + "│");
-
-					RenderChildren(child, childLabelCol, sb);
+					if (!isLast) verticalBars.Add(labelCol);
+					sb.AppendLine(BuildPrefix(childLabelCol, verticalBars) + "│");
+					RenderChildren(child, childLabelCol, verticalBars, sb);
+					if (!isLast) verticalBars.RemoveAt(verticalBars.Count - 1);
 				}
 			}
 		}
