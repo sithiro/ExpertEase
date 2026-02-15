@@ -96,6 +96,71 @@ dotnet run --project ExpertEase.Console -- medical_triage.json
 dotnet run --project ExpertEase.Console -- stock_entry.json
 ```
 
+## Creating a knowledge base
+
+A knowledge base is a table of past examples. Each example has a set of **attributes** (the inputs) and a **label** (the advice/decision). ExpertEase learns a decision tree from these examples and uses it to advise on new cases.
+
+There are two attribute types:
+- **Categorical** — a fixed set of text values (e.g. `luxury`, `standard`, `budget`)
+- **Numeric** — any number (e.g. `30000`, `4.5`)
+
+Use `*` as a wildcard when an attribute's value is unknown or doesn't matter for that example.
+
+### CSV format
+
+The simplest way to create a KB. Write a plain CSV table — the last column is always the label. Attribute types are inferred automatically: if every non-`*` value in a column parses as a number, it's numeric; otherwise it's categorical.
+
+```csv
+Brand,Mileage,Age,Condition,Advice
+luxury,30000,2,excellent,premium
+luxury,45000,3,good,premium
+luxury,120000,7,good,fair
+standard,40000,3,good,fair
+standard,80000,5,excellent,fair
+budget,60000,4,good,budget
+standard,130000,8,good,budget
+*,200000,12,poor,avoid
+*,180000,10,poor,avoid
+budget,20000,1,*,fair
+budget,160000,9,poor,avoid
+luxury,15000,1,*,premium
+```
+
+Here `Brand` and `Condition` are inferred as categorical (text values), while `Mileage` and `Age` are inferred as numeric. The `*` in the Brand column means "any brand" and in Condition means "any condition".
+
+### JSON format
+
+Gives you explicit control over attribute types and domains. The file has three sections: metadata (`name`, `description`), `attributes` (each with a `name`, `kind`, and optional `domain`), and `examples`.
+
+```json
+{
+  "name": "CarPricingAdvisor",
+  "description": "Used car pricing advice based on brand, mileage, age, and condition.",
+  "attributes": [
+    { "name": "Brand",     "kind": "categorical", "domain": ["luxury", "standard", "budget"] },
+    { "name": "Mileage",   "kind": "numeric" },
+    { "name": "Age",       "kind": "numeric" },
+    { "name": "Condition",  "kind": "categorical", "domain": ["excellent", "good", "poor"] }
+  ],
+  "examples": [
+    { "label": "premium", "attributes": { "Brand": "luxury",   "Mileage": "30000",  "Age": "2",  "Condition": "excellent" } },
+    { "label": "premium", "attributes": { "Brand": "luxury",   "Mileage": "45000",  "Age": "3",  "Condition": "good" } },
+    { "label": "fair",    "attributes": { "Brand": "luxury",   "Mileage": "120000", "Age": "7",  "Condition": "good" } },
+    { "label": "fair",    "attributes": { "Brand": "standard", "Mileage": "40000",  "Age": "3",  "Condition": "good" } },
+    { "label": "fair",    "attributes": { "Brand": "standard", "Mileage": "80000",  "Age": "5",  "Condition": "excellent" } },
+    { "label": "budget",  "attributes": { "Brand": "budget",   "Mileage": "60000",  "Age": "4",  "Condition": "good" } },
+    { "label": "budget",  "attributes": { "Brand": "standard", "Mileage": "130000", "Age": "8",  "Condition": "good" } },
+    { "label": "avoid",   "attributes": { "Brand": "*",        "Mileage": "200000", "Age": "12", "Condition": "poor" } },
+    { "label": "avoid",   "attributes": { "Brand": "*",        "Mileage": "180000", "Age": "10", "Condition": "poor" } },
+    { "label": "fair",    "attributes": { "Brand": "budget",   "Mileage": "20000",  "Age": "1",  "Condition": "*" } },
+    { "label": "avoid",   "attributes": { "Brand": "budget",   "Mileage": "160000", "Age": "9",  "Condition": "poor" } },
+    { "label": "premium", "attributes": { "Brand": "luxury",   "Mileage": "15000",  "Age": "1",  "Condition": "*" } }
+  ]
+}
+```
+
+The JSON `domain` array for categorical attributes defines the allowed values and their order during consultation. For numeric attributes, no domain is needed. Both formats produce identical decision trees.
+
 ## Design notes
 
 - **Goal**: small, understandable, 80s-style expert system shell. Explicitly inspect the induced tree, extract rules, ask WHY and HOW, treat the tree as a symbolic knowledge base.
