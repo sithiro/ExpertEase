@@ -35,6 +35,12 @@ Full implementation of Quinlan's C4.5 decision tree learner:
 - **HOW**: after reaching a conclusion, traces the full decision path and explains each step.
 - Rule extraction and ASCII tree visualization.
 
+### ASCII tree output
+
+ExpertEase renders the learned decision tree as an ASCII tree, showing the full branching structure with attribute tests, thresholds, and leaf decisions at a glance:
+
+![ASCII decision tree for medical triage KB](screenshot2.png)
+
 ### Knowledge bases
 
 Two formats are supported — auto-detected by file extension:
