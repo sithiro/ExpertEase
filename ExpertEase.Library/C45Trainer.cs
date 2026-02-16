@@ -1065,6 +1065,27 @@ namespace ExpertEase
 			}
 		}
 
+		public static string FormatRules(TreeNode root)
+		{
+			var sb = new StringBuilder();
+			foreach (var rule in ExtractRules(root))
+				sb.AppendLine(rule);
+			return sb.ToString();
+		}
+
+		public static string FormatAttributes(IEnumerable<AttributeDef> attributes)
+		{
+			var sb = new StringBuilder();
+			foreach (var attr in attributes)
+			{
+				if (attr.Kind == AttributeKind.Numeric)
+					sb.AppendLine($"- {attr.Name} (numeric)");
+				else
+					sb.AppendLine($"- {attr.Name} (categorical): {string.Join(", ", attr.Domain)}");
+			}
+			return sb.ToString();
+		}
+
 		// ASCII tree formatter (console-friendly), supports both categorical and numeric nodes
 		public static string FormatTree(TreeNode root)
 		{

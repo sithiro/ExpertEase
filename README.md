@@ -125,12 +125,14 @@ dotnet run --project ExpertEase.Mcp
 |------|-------------|
 | `list_knowledge_bases` | Lists all available .json and .csv KB files |
 | `classify` | One-shot classification — pass all attributes, get advice + explanation |
-| `get_decision_tree` | Shows the full tree, IF-THEN rules, and attributes for a KB |
+| `get_decision_tree` | Shows the trained decision tree structure for a KB |
+| `get_induced_rules` | Shows the extracted IF-THEN rules for a KB |
+| `get_attributes` | Shows the attributes (inputs) for a KB — name, type, and domain values |
 | `reload_knowledge_base` | Reloads and retrains a KB from disk, returns stats (useful after editing a KB file) |
 | `start_consultation` | Begins an interactive session, returns the first question |
 | `answer_question` | Answers the current question, returns next question or conclusion |
 | `explain_why` | Explains why the current question is being asked (mid-consultation) |
-| `explain_how` | Shows the full decision tree and rules for the session's KB |
+| `explain_how` | Shows the full decision tree and induced rules for the session's KB |
 
 ### Claude Code configuration
 

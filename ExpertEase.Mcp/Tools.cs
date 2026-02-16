@@ -50,7 +50,7 @@ public static class Tools
         return sb.ToString();
     }
 
-    [McpServerTool, Description("Get the trained decision tree and extracted IF-THEN rules for a knowledge base. Useful for understanding the classification logic.")]
+    [McpServerTool, Description("Get the trained decision tree for a knowledge base. Shows the tree structure.")]
     public static string GetDecisionTree(
         [Description("KB filename (e.g. 'car_pricing.csv' or 'sunday.json'). Use list_knowledge_bases to discover available files.")] string knowledgeBase)
     {
@@ -58,30 +58,31 @@ public static class Tools
         var (attrs, examples) = KnowledgeBaseLoader.LoadFromFile(kbPath);
         var root = C45Trainer.Train(examples, attrs);
 
-        var sb = new StringBuilder();
-
-        sb.AppendLine("=== IF-THEN Rules ===");
-        foreach (var rule in RuleExtractor.ExtractRules(root))
-            sb.AppendLine(rule);
-
-        sb.AppendLine();
-        sb.AppendLine("=== Decision Tree ===");
-        sb.Append(RuleExtractor.FormatTree(root));
-
-        sb.AppendLine();
-        sb.AppendLine("=== Attributes ===");
-        foreach (var attr in attrs)
-        {
-            if (attr.Kind == AttributeKind.Numeric)
-                sb.AppendLine($"- {attr.Name} (numeric)");
-            else
-                sb.AppendLine($"- {attr.Name} (categorical): {string.Join(", ", attr.Domain)}");
-        }
-
-        return sb.ToString();
+        return "=== Decision Tree ===\n" + RuleExtractor.FormatTree(root);
     }
 
-    [McpServerTool, Description("List all available knowledge base files (.json and .csv) that can be used with classify and get_decision_tree.")]
+    [McpServerTool, Description("Get the attributes (inputs) for a knowledge base. Shows each attribute's name, type, and domain values.")]
+    public static string GetAttributes(
+        [Description("KB filename (e.g. 'car_pricing.csv' or 'sunday.json'). Use list_knowledge_bases to discover available files.")] string knowledgeBase)
+    {
+        var kbPath = KnowledgeBaseLoader.ResolveKbPath(knowledgeBase);
+        var (attrs, _) = KnowledgeBaseLoader.LoadFromFile(kbPath);
+
+        return "=== Attributes ===\n" + RuleExtractor.FormatAttributes(attrs);
+    }
+
+    [McpServerTool, Description("Get the extracted IF-THEN rules for a knowledge base. Shows the induced rules from the trained decision tree.")]
+    public static string GetInducedRules(
+        [Description("KB filename (e.g. 'car_pricing.csv' or 'sunday.json'). Use list_knowledge_bases to discover available files.")] string knowledgeBase)
+    {
+        var kbPath = KnowledgeBaseLoader.ResolveKbPath(knowledgeBase);
+        var (attrs, examples) = KnowledgeBaseLoader.LoadFromFile(kbPath);
+        var root = C45Trainer.Train(examples, attrs);
+
+        return "=== Induced Rules ===\n" + RuleExtractor.FormatRules(root);
+    }
+
+    [McpServerTool, Description("List all available knowledge base files (.json and .csv). Call this first to discover which expert domains are available — there may be a knowledge base that matches the user's question. If a match is found, ask the user if they would like to start a consultation before proceeding.")]
     public static string ListKnowledgeBases()
     {
         var files = KnowledgeBaseLoader.ListKnowledgeBases();
@@ -240,7 +241,7 @@ public static class Tools
         return "The consultation is already complete — there is no current question to explain. Use explain_how to see how the conclusion was reached.";
     }
 
-    [McpServerTool, Description("Show the full decision tree and IF-THEN rules for the knowledge base used in a consultation session.")]
+    [McpServerTool, Description("Show the full decision tree and induced rules for the knowledge base used in a consultation session.")]
     public static string ExplainHow(
         [Description("The session ID returned by start_consultation.")] string sessionId)
     {
@@ -252,23 +253,12 @@ public static class Tools
         sb.AppendLine($"Decision tree for knowledge base '{session.KnowledgeBaseName}':");
         sb.AppendLine();
 
-        sb.AppendLine("=== IF-THEN Rules ===");
-        foreach (var rule in RuleExtractor.ExtractRules(session.TreeRoot))
-            sb.AppendLine(rule);
-
-        sb.AppendLine();
         sb.AppendLine("=== Decision Tree ===");
         sb.Append(RuleExtractor.FormatTree(session.TreeRoot));
 
         sb.AppendLine();
-        sb.AppendLine("=== Attributes ===");
-        foreach (var attr in session.Attributes)
-        {
-            if (attr.Kind == AttributeKind.Numeric)
-                sb.AppendLine($"- {attr.Name} (numeric)");
-            else
-                sb.AppendLine($"- {attr.Name} (categorical): {string.Join(", ", attr.Domain)}");
-        }
+        sb.AppendLine("=== Induced Rules ===");
+        sb.Append(RuleExtractor.FormatRules(session.TreeRoot));
 
         return sb.ToString();
     }

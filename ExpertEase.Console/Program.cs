@@ -45,17 +45,17 @@ namespace ExpertEase.Console
             // 3. Train the tree
             var root = C45Trainer.Train(examples, attributes);
 
-            // 4. Show rules and tree
-            var rules = RuleExtractor.ExtractRules(root);
-            System.Console.WriteLine("=== Induced rules ===");
-            foreach (var rule in rules)
-            {
-                System.Console.WriteLine(rule);
-            }
+            // 4. Show tree, rules, and attributes
+            System.Console.WriteLine("=== Decision tree ===");
+            System.Console.Write(RuleExtractor.FormatTree(root));
 
             System.Console.WriteLine();
-            System.Console.WriteLine("=== Decision tree ===");
-            System.Console.WriteLine(RuleExtractor.FormatTree(root));
+            System.Console.WriteLine("=== Induced rules ===");
+            System.Console.Write(RuleExtractor.FormatRules(root));
+
+            System.Console.WriteLine();
+            System.Console.WriteLine("=== Attributes ===");
+            System.Console.Write(RuleExtractor.FormatAttributes(attributes));
 
             // 5. Interactive consultation
             InteractiveConsult(root, attributes);
