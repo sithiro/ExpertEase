@@ -25,7 +25,7 @@ public sealed class ConsultationSession
 public static class Tools
 {
     private static readonly ConcurrentDictionary<string, ConsultationSession> Sessions = new();
-    [McpServerTool, Description("Classify a case using a trained decision tree from a knowledge base. Returns the predicted advice and an explanation of how the decision was reached.")]
+    [McpServerTool, Description("Classify a case using a trained decision tree from a knowledge base. Returns the predicted advice and an explanation of how the decision was reached. PREFERRED over start_consultation when all attribute values are already known from the user's message — avoids unnecessary back-and-forth.")]
     public static string Classify(
         [Description("KB filename (e.g. 'car_pricing.csv' or 'sunday.json'). Use list_knowledge_bases to discover available files.")] string knowledgeBase,
         [Description("JSON object of attribute key-value pairs, e.g. {\"Brand\":\"luxury\",\"Mileage\":\"30000\"}")] string attributes)
@@ -114,7 +114,7 @@ public static class Tools
         return sb.ToString();
     }
 
-    [McpServerTool, Description("Start an interactive consultation session with a knowledge base. Returns the first question to ask the user. Use answer_question to continue the consultation step by step.")]
+    [McpServerTool, Description("Start an interactive consultation session with a knowledge base. Returns the first question to ask the user. Use answer_question to continue the consultation step by step. Only use this when some attribute values are MISSING from the user's message — if all values are known, use classify instead. When some values are known and others are not, answer known questions automatically with answer_question and only ask the user for unknown ones.")]
     public static string StartConsultation(
         [Description("KB filename (e.g. 'car_pricing.csv' or 'sunday.json'). Use list_knowledge_bases to discover available files.")] string knowledgeBase)
     {
@@ -248,19 +248,7 @@ public static class Tools
         if (!Sessions.TryGetValue(sessionId, out var session))
             return "Error: Session not found.";
 
-        var sb = new StringBuilder();
-
-        sb.AppendLine($"Decision tree for knowledge base '{session.KnowledgeBaseName}':");
-        sb.AppendLine();
-
-        sb.AppendLine("=== Decision Tree ===");
-        sb.Append(RuleExtractor.FormatTree(session.TreeRoot));
-
-        sb.AppendLine();
-        sb.AppendLine("=== Induced Rules ===");
-        sb.Append(RuleExtractor.FormatRules(session.TreeRoot));
-
-        return sb.ToString();
+        return C45Trainer.How(session.TreeRoot, session.Answers);
     }
 
     private static string FormatQuestion(ConsultationSession session)
