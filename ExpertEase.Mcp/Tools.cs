@@ -251,6 +251,41 @@ public static class Tools
         return C45Trainer.How(session.TreeRoot, session.Answers);
     }
 
+    [McpServerTool, Description("List all active consultation sessions. Shows session ID, knowledge base, completion status, and current progress for each session.")]
+    public static string ListSessions()
+    {
+        if (Sessions.IsEmpty)
+            return "No active consultation sessions.";
+
+        var sb = new StringBuilder();
+        sb.AppendLine($"Active sessions: {Sessions.Count}");
+        foreach (var (id, session) in Sessions)
+        {
+            sb.Append($"- {id} | KB: {session.KnowledgeBaseName}");
+            if (session.IsComplete)
+                sb.AppendLine($" | Complete — Advice: {session.FinalAdvice}");
+            else
+                sb.AppendLine($" | In progress — Current question: {session.CurrentNode.AttributeName}");
+        }
+        return sb.ToString();
+    }
+
+    [McpServerTool, Description("Clear all consultation sessions, or a specific session by ID. Frees server memory.")]
+    public static string ClearSessions(
+        [Description("Optional session ID to clear. If omitted, all sessions are cleared.")] string? sessionId = null)
+    {
+        if (sessionId != null)
+        {
+            if (Sessions.TryRemove(sessionId, out _))
+                return $"Session {sessionId} cleared.";
+            return $"Error: Session '{sessionId}' not found.";
+        }
+
+        var count = Sessions.Count;
+        Sessions.Clear();
+        return $"Cleared {count} session(s).";
+    }
+
     private static string FormatQuestion(ConsultationSession session)
     {
         var node = session.CurrentNode;

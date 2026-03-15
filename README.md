@@ -133,6 +133,8 @@ dotnet run --project ExpertEase.Mcp
 | `answer_question` | Answers the current question, returns next question or conclusion |
 | `explain_why` | Explains why the current question is being asked (mid-consultation) |
 | `explain_how` | Shows the full decision tree and induced rules for the session's KB |
+| `list_sessions` | Lists all active consultation sessions with status and progress |
+| `clear_sessions` | Clears all sessions, or a specific one by ID, to free server memory |
 
 ### Claude Code configuration
 
