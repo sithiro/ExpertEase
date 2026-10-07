@@ -1,0 +1,18 @@
+<Project>
+  <!-- Single source of truth for the version. CI overrides it with -p:Version=X.Y.Z on release builds. -->
+  <PropertyGroup>
+    <Version>1.0.0</Version>
+    <Authors>Bill Sithiro</Authors>
+    <Product>ExpertEase</Product>
+    <RepositoryUrl>https://github.com/sithiro/ExpertEase</RepositoryUrl>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+  </PropertyGroup>
+
+  <!-- Ship the bundled knowledge bases next to the executable (publish only, so `dotnet run` keeps using the repo folder and edits show up immediately). -->
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'ExpertEase.Mcp' Or '$(MSBuildProjectName)' == 'ExpertEase.Console'">
+    <Content Include="$(MSBuildThisFileDirectory)ExpertEase.Knowledge\*.json;$(MSBuildThisFileDirectory)ExpertEase.Knowledge\*.csv"
+             Link="ExpertEase.Knowledge\%(Filename)%(Extension)"
+             CopyToOutputDirectory="Never"
+             CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

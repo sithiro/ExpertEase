@@ -1,7 +1,17 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System.Reflection;
 using ModelContextProtocol;
+
+var version = Assembly.GetExecutingAssembly()
+    .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion?.Split('+')[0] ?? "0.0.0";
+
+if (args.Contains("--version"))
+{
+    Console.WriteLine(version);
+    return;
+}
 
 var builder = Host.CreateApplicationBuilder(args);
 builder.Logging.AddFilter("Microsoft", LogLevel.Warning);
@@ -11,7 +21,7 @@ builder.Services
         options.ServerInfo = new()
         {
             Name = "ExpertEase",
-            Version = "1.0.0"
+            Version = version
         };
         options.ServerInstructions = "ExpertEase is an expert system shell. " +
             "Always call list_knowledge_bases first to discover available expert domains " +

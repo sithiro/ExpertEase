@@ -1,0 +1,24 @@
+{
+  "manifest_version": "0.2",
+  "name": "ExpertEase",
+  "version": "1.0.0",
+  "description": "An Expert-Ease style shell: build, train, and consult explainable expert systems induced with a C4.5 decision tree learner.",
+  "author": {
+    "name": "Bill Sithiro",
+    "email": "sithiro@gmail.com",
+    "url": "https://github.com/sithiro"
+  },
+  "repository": { "type": "git", "url": "https://github.com/sithiro/ExpertEase" },
+  "homepage": "https://github.com/sithiro/ExpertEase",
+  "keywords": ["expert-system", "decision-tree", "c4.5", "explainable-ai", "mcp", ".net", "csharp"],
+  "server": {
+    "type": "binary",
+    "entry_point": "server/expertease.exe",
+    "mcp_config": {
+      "command": "${__dirname}/server/expertease.exe",
+      "args": [],
+      "env": {}
+    }
+  },
+  "tools_generated": true
+}

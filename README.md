@@ -11,6 +11,49 @@ Instead of opaque ML models, ExpertEase:
 
 ![ExpertEase MCP consultation in Claude Code](screenshot.png)
 
+## Install
+
+**Windows (PowerShell):**
+
+```
+powershell -c "irm https://raw.githubusercontent.com/sithiro/ExpertEase/main/install.ps1 | iex"
+```
+
+**Linux/macOS:**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/sithiro/ExpertEase/main/install.sh | bash
+```
+
+The installer downloads the latest [release](https://github.com/sithiro/ExpertEase/releases/latest) — a self-contained binary (no .NET install needed) plus the bundled knowledge bases — and prints the command to register it with your agent:
+
+```bash
+claude mcp add -s user -t stdio expertease -- /path/to/expertease       # Claude Code
+codex mcp add expertease -- /path/to/expertease                          # Codex
+code --add-mcp '{"name":"expertease","command":"/path/to/expertease","args":[]}' # Copilot
+```
+
+Pin a version with `VERSION=1.0.3` (environment variable). Claude Desktop users can instead download `expertease-<platform>.mcpb` from the [latest release](https://github.com/sithiro/ExpertEase/releases/latest) and open it.
+
+| Platform | Release asset |
+|---|---|
+| Windows x64 | `expertease-win-x64.mcpb` |
+| Linux x64 | `expertease-linux-x64.mcpb` |
+| macOS arm64 (Apple Silicon) | `expertease-osx-arm64.mcpb` |
+
+> **macOS:** the binary is not notarized. The installer ad-hoc signs it; for the `.mcpb`, run `codesign --force --deep --sign - <path to server/expertease>`.
+
+**Your own knowledge bases:** set `EXPERTEASE_KNOWLEDGE_DIR` to a folder of `.json`/`.csv` files. They are listed alongside the bundled ones and win on name clashes.
+
+## Versioning and releases
+
+Every push to `main` that touches the code, knowledge bases, or packaging builds and publishes a new GitHub release automatically (`.github/workflows/release.yml`):
+
+- Tags look like `expertease-vMAJOR.MINOR.PATCH`. The patch is bumped automatically (rolling over into minor after 9). To pick a version, run the workflow manually with `custom_version`.
+- The version is stamped into the binary: `expertease --version`, and the MCP `serverInfo` version.
+- Each release carries one `.mcpb` per platform, with build provenance attestations. The release is only published once all platforms are uploaded.
+- Pull requests and feature branches run `.github/workflows/ci.yml` (build on Linux/Windows/macOS plus an MCP handshake smoke test).
+
 ## Status
 
 C# solution with three projects:
@@ -83,7 +126,11 @@ ExpertEase/
   ExpertEase.Mcp/              MCP server for AI assistants
     Program.cs
     Tools.cs                   MCP tool definitions
-  ExpertEase.Knowledge/        Knowledge base files (*.json, *.csv)
+  ExpertEase.Knowledge/        Knowledge base files (*.json, *.csv), bundled into releases
+  ExpertEase.Extension/        manifest.json for the .mcpb (Claude Desktop) package
+  Directory.Build.props        Version and knowledge-base bundling
+  install.sh / install.ps1     One-line installers
+  .github/workflows/           ci.yml and release.yml
 ```
 
 ## Running the Console
@@ -136,7 +183,7 @@ dotnet run --project ExpertEase.Mcp
 | `list_sessions` | Lists all active consultation sessions with status and progress |
 | `clear_sessions` | Clears all sessions, or a specific one by ID, to free server memory |
 
-### Claude Code configuration
+### Claude Code configuration (from source)
 
 Add to `.mcp.json` in your project root:
 

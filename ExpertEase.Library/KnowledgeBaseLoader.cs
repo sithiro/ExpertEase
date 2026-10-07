@@ -13,6 +13,12 @@ namespace ExpertEase
         private const string KnowledgeFolderName = "ExpertEase.Knowledge";
 
         /// <summary>
+        /// Optional environment variable pointing at a folder of user knowledge bases.
+        /// Files there take precedence over (and are listed alongside) the bundled ones.
+        /// </summary>
+        public const string KnowledgeDirEnvVar = "EXPERTEASE_KNOWLEDGE_DIR";
+
+        /// <summary>
         /// Resolves a KB filename to a full path. Checks: exact/relative path first, then the ExpertEase.Knowledge folder.
         /// </summary>
         public static string ResolveKbPath(string filename)
@@ -20,8 +26,7 @@ namespace ExpertEase
             if (File.Exists(filename))
                 return Path.GetFullPath(filename);
 
-            var knowledgeDir = FindKnowledgeDirectory();
-            if (knowledgeDir != null)
+            foreach (var knowledgeDir in FindKnowledgeDirectories())
             {
                 var inKb = Path.Combine(knowledgeDir, filename);
                 if (File.Exists(inKb))
@@ -36,32 +41,39 @@ namespace ExpertEase
         /// </summary>
         public static List<string> ListKnowledgeBases()
         {
-            var knowledgeDir = FindKnowledgeDirectory();
-            if (knowledgeDir == null)
-                return new List<string>();
-
-            return Directory.GetFiles(knowledgeDir, "*.json")
-                .Concat(Directory.GetFiles(knowledgeDir, "*.csv"))
+            return FindKnowledgeDirectories()
+                .SelectMany(dir => Directory.GetFiles(dir, "*.json").Concat(Directory.GetFiles(dir, "*.csv")))
                 .Select(Path.GetFileName)
                 .Where(f => f != null)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(f => f)
                 .ToList()!;
         }
 
         /// <summary>
-        /// Walks up from AppContext.BaseDirectory looking for the ExpertEase.Knowledge folder.
+        /// Knowledge folders in priority order: the EXPERTEASE_KNOWLEDGE_DIR override (if set and present),
+        /// then the bundled ExpertEase.Knowledge folder found by walking up from AppContext.BaseDirectory.
         /// </summary>
-        private static string? FindKnowledgeDirectory()
+        private static List<string> FindKnowledgeDirectories()
         {
+            var result = new List<string>();
+
+            var custom = Environment.GetEnvironmentVariable(KnowledgeDirEnvVar);
+            if (!string.IsNullOrWhiteSpace(custom) && Directory.Exists(custom))
+                result.Add(Path.GetFullPath(custom));
+
             var dir = new DirectoryInfo(AppContext.BaseDirectory);
             while (dir != null)
             {
                 var candidate = Path.Combine(dir.FullName, KnowledgeFolderName);
                 if (Directory.Exists(candidate))
-                    return candidate;
+                {
+                    result.Add(candidate);
+                    break;
+                }
                 dir = dir.Parent;
             }
-            return null;
+            return result;
         }
 
         public static (List<AttributeDef> Attributes, List<TrainingExample> Examples) LoadFromFile(string path)

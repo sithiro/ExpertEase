@@ -1,0 +1,218 @@
+name: Release ExpertEase
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "ExpertEase.Library/**"
+      - "ExpertEase.Mcp/**"
+      - "ExpertEase.Console/**"
+      - "ExpertEase.Knowledge/**"
+      - "ExpertEase.Extension/**"
+      - "Directory.Build.props"
+      - "global.json"
+      - ".github/workflows/release.yml"
+  workflow_dispatch:
+    inputs:
+      custom_version:
+        description: Optional explicit version to release, for example 2.3.4
+        required: false
+        type: string
+
+# Never run two releases at once; they would race on the version computation.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Build
+        run: dotnet build ExpertEase.sln -c Release
+
+  version:
+    runs-on: ubuntu-latest
+    needs: build
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute Version And Tag
+        id: version
+        shell: bash
+        env:
+          CUSTOM_VERSION: ${{ inputs.custom_version }}
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if [[ -n "${CUSTOM_VERSION:-}" ]]; then
+            if [[ ! "$CUSTOM_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "custom_version must match MAJOR.MINOR.PATCH, for example 2.3.4" >&2
+              exit 1
+            fi
+
+            tag="expertease-v${CUSTOM_VERSION}"
+            existing="$(git rev-list -n 1 "$tag" 2>/dev/null || true)"
+            if [[ -n "$existing" && "$existing" != "${GITHUB_SHA}" ]]; then
+              echo "Tag $tag already exists on commit $existing and cannot be reused for ${GITHUB_SHA}." >&2
+              exit 1
+            fi
+
+            echo "tag=$tag" >> "$GITHUB_OUTPUT"
+            echo "version=$CUSTOM_VERSION" >> "$GITHUB_OUTPUT"
+            if [[ -z "$existing" ]]; then
+              git tag "$tag"
+              git push origin "$tag"
+            fi
+            exit 0
+          fi
+
+          # Re-runs on the same commit reuse its existing tag.
+          existing_tag="$(git tag --points-at HEAD | grep -E '^expertease-v[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1 || true)"
+          if [[ -n "$existing_tag" ]]; then
+            echo "tag=$existing_tag" >> "$GITHUB_OUTPUT"
+            echo "version=${existing_tag#expertease-v}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Otherwise bump the latest tag (default start: 1.0.0). Patch 0-9 rolls over into minor.
+          latest_tag="$(git tag --list 'expertease-v*' --sort=-v:refname | head -n 1 || true)"
+          if [[ -z "$latest_tag" ]]; then
+            next_version="1.0.0"
+          else
+            IFS='.' read -r major minor patch <<< "${latest_tag#expertease-v}"
+            patch=$((patch + 1))
+            if [[ "$patch" -ge 10 ]]; then
+              patch=0
+              minor=$((minor + 1))
+            fi
+            next_version="${major}.${minor}.${patch}"
+          fi
+
+          next_tag="expertease-v${next_version}"
+          echo "tag=$next_tag" >> "$GITHUB_OUTPUT"
+          echo "version=$next_version" >> "$GITHUB_OUTPUT"
+          git tag "$next_tag"
+          git push origin "$next_tag"
+
+  create-release:
+    runs-on: ubuntu-latest
+    needs: version
+    steps:
+      - name: Create Draft Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "${{ needs.version.outputs.tag }}" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            exit 0
+          fi
+
+          # Draft until every platform asset is uploaded, so /releases/latest never points at a half-built release.
+          gh release create "${{ needs.version.outputs.tag }}" \
+            --repo "${{ github.repository }}" \
+            --title "ExpertEase ${{ needs.version.outputs.version }}" \
+            --generate-notes \
+            --draft
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: [version, create-release]
+    strategy:
+      fail-fast: false
+      matrix:
+        rid: [win-x64, linux-x64, osx-arm64]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Publish
+        run: |
+          dotnet publish ExpertEase.Mcp/ExpertEase.Mcp.csproj \
+            -c Release \
+            -r ${{ matrix.rid }} \
+            --self-contained true \
+            -p:Version=${{ needs.version.outputs.version }} \
+            -p:PublishSingleFile=true \
+            -p:IncludeNativeLibrariesForSelfExtract=true \
+            -p:PublishTrimmed=false \
+            -p:DebugType=None -p:DebugSymbols=false \
+            -o artifacts/publish
+
+          test -f artifacts/publish/ExpertEase.Knowledge/sunday.json
+
+      - name: Verify Version (linux)
+        if: matrix.rid == 'linux-x64'
+        run: |
+          chmod +x artifacts/publish/expertease
+          test "$(artifacts/publish/expertease --version)" = "${{ needs.version.outputs.version }}"
+
+      - name: Package MCPB Extension
+        run: |
+          STAGE="artifacts/mcpb-stage"
+          mkdir -p "$STAGE"
+          cp -r artifacts/publish "$STAGE/server"
+
+          if [[ "${{ matrix.rid }}" == win-* ]]; then
+            ENTRY_POINT="server/expertease.exe"
+          else
+            ENTRY_POINT="server/expertease"
+            chmod +x "$STAGE/$ENTRY_POINT"
+          fi
+
+          # Platform-specific manifest with the right entry point and release version.
+          jq --arg ep "$ENTRY_POINT" --arg ver "${{ needs.version.outputs.version }}" \
+            '.server.entry_point = $ep | .server.mcp_config.command = ("${__dirname}/" + $ep) | .version = $ver' \
+            ExpertEase.Extension/manifest.json > "$STAGE/manifest.json"
+
+          cd "$STAGE"
+          zip -r "../expertease-${{ matrix.rid }}.mcpb" .
+
+      - name: Attest MCPB Build Provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: "artifacts/expertease-${{ matrix.rid }}.mcpb"
+
+      - name: Upload Asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${{ needs.version.outputs.tag }}" \
+            "artifacts/expertease-${{ matrix.rid }}.mcpb" \
+            --repo "${{ github.repository }}" \
+            --clobber
+
+  finalize:
+    runs-on: ubuntu-latest
+    needs: [version, publish]
+    steps:
+      - name: Publish Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release edit "${{ needs.version.outputs.tag }}" \
+            --repo "${{ github.repository }}" \
+            --draft=false \
+            --latest
