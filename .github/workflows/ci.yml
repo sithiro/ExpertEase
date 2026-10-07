@@ -32,7 +32,9 @@ jobs:
           dotnet publish ExpertEase.Mcp/ExpertEase.Mcp.csproj -c Release -o out
           test -f out/ExpertEase.Knowledge/sunday.json
           out/expertease --version
-          # initialize handshake over stdio must answer with serverInfo
-          printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"ci","version":"0"}}}' \
-            | timeout 20 out/expertease | head -n 1 | tee init.json
+          # initialize handshake over stdio must answer with serverInfo.
+          # Keep stdin open briefly: the server exits as soon as stdin hits EOF.
+          (printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"ci","version":"0"}}}'; sleep 5) \
+            | timeout 15 out/expertease > init.json || true
+          cat init.json
           grep -q '"serverInfo"' init.json
