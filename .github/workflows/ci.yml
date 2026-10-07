@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches-ignore:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Build
+        run: dotnet build ExpertEase.sln -c Release
+
+      - name: Smoke test MCP server
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet publish ExpertEase.Mcp/ExpertEase.Mcp.csproj -c Release -o out
+          test -f out/ExpertEase.Knowledge/sunday.json
+          out/expertease --version
+          # initialize handshake over stdio must answer with serverInfo.
+          # Keep stdin open briefly: the server exits as soon as stdin hits EOF.
+          (printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"ci","version":"0"}}}'; sleep 5) \
+            | timeout 15 out/expertease > init.json || true
+          cat init.json
+          grep -q '"serverInfo"' init.json
