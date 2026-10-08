@@ -33,7 +33,7 @@ codex mcp add expertease -- /path/to/expertease                          # Codex
 code --add-mcp '{"name":"expertease","command":"/path/to/expertease","args":[]}' # Copilot
 ```
 
-Pin a version with `VERSION=1.0.3` (environment variable). Claude Desktop users can instead download `expertease-<platform>.mcpb` from the [latest release](https://github.com/sithiro/ExpertEase/releases/latest) and open it.
+Claude Desktop users can instead download `expertease-<platform>.mcpb` from the [latest release](https://github.com/sithiro/ExpertEase/releases/latest) and open it.
 
 | Platform | Release asset |
 |---|---|
@@ -45,14 +45,15 @@ Pin a version with `VERSION=1.0.3` (environment variable). Claude Desktop users 
 
 **Your own knowledge bases:** set `EXPERTEASE_KNOWLEDGE_DIR` to a folder of `.json`/`.csv` files. They are listed alongside the bundled ones and win on name clashes.
 
-## Versioning and releases
+## What's in a release
 
-Every push to `main` that touches the code, knowledge bases, or packaging builds and publishes a new GitHub release automatically (`.github/workflows/release.yml`):
+Each [release](https://github.com/sithiro/ExpertEase/releases/latest) contains one `.mcpb` package per platform. Each package contains:
 
-- Tags look like `expertease-vMAJOR.MINOR.PATCH`. The patch is bumped automatically (rolling over into minor after 9). To pick a version, run the workflow manually with `custom_version`.
-- The version is stamped into the binary: `expertease --version`, and the MCP `serverInfo` version.
-- Each release carries one `.mcpb` per platform, with build provenance attestations. The release is only published once all platforms are uploaded.
-- Pull requests and feature branches run `.github/workflows/ci.yml` (build on Linux/Windows/macOS plus an MCP handshake smoke test).
+- **`expertease`** (`expertease.exe` on Windows): the ExpertEase MCP server as a single self-contained executable. You don't need to install .NET.
+- **`ExpertEase.Knowledge/`**: the example knowledge bases (see [Knowledge bases](#knowledge-bases)), ready to consult straight away.
+- **`manifest.json`**: lets Claude Desktop install the package as an extension when you open the `.mcpb` file.
+
+The install scripts above unpack the executable and the knowledge bases into an `ExpertEase vX.Y.Z` folder in the current directory.
 
 ## Status
 
